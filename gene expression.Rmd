@@ -1,0 +1,1111 @@
+---
+title: "gene expression"
+author: "cao hui"
+date: "2020年6月9日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width = 8,fig.asp=0.618,message = F,dpi = 300)
+
+# 作图
+library(tidyverse)
+library(ggplot2)
+library(cowplot)
+library(ggpubr)
+library(corrplot)
+library(pheatmap)
+library(RColorBrewer)
+library(vegan)
+library(DESeq2)
+library(openxlsx)
+library(clusterProfiler)
+theme_set(theme_bw())
+
+# 导入预定义函数
+source("D:/community_assemble/RNA-seq/functions/functions.R")
+source("D:/community_assemble/RNA-seq/functions/ggplot_smooth_func.R")
+ 
+```
+
+#源文件导出和处理
+```{r}
+## 需要删除表格后面的信息
+result_file <- list.files(path="D:/community_assemble/RNA-seq/data/qPCR_growth_curve", pattern = "Results_ViiA7_export.txt",full.names = T)
+meta_file <- list.files(path="D:/community_assemble/RNA-seq/data/qPCR_growth_curve", ,pattern = "meta.txt",full.names = T)
+## 读取qPCR Results数据
+result1 <- read_delim(result_file[[1]],"\t",skip=43,na="Undetermined")
+result2 <- read_delim(result_file[[2]],"\t",skip=43,na="Undetermined")
+result2 <- filter(result2,Task!="STANDARD")
+results <- rbind(result1,result2)
+
+## 读取meta数据（实验设计和分组）
+meta <- read_delim(meta_file,"\t")
+meta$condition <- factor(meta$condition, levels = c("none","less","equal","more","all"))
+
+## 简化Results数据
+results %>% 
+  select(Well,`Sample Name`,`Target Name`,CT) %>% 
+  dplyr::rename(sample=`Sample Name`,species=`Target Name`)  -> results
+
+## 将meta数据合并到Results中
+left_join(results,meta,by="sample") -> results
+
+## 去除非特异性扩增
+results %>%
+  filter(!(condition=="all" & species=="PP")) %>%
+  filter(!(condition=="none" & species=="EC")) -> results
+
+## 计算定量数据
+cal_quantity <- function(ct){10^(-.2922*ct+12.077)}
+results %>% mutate(quantity=cal_quantity(CT)*dilution) %>%
+  filter(quantity > 1e5) -> results
+```
+
+##做生长曲线图
+
+将monoculture的生长曲线以背景形式显示到coculture体系的生长曲线上，可以更好的发现在coculture中两个物种的生长动态。
+
+```{r fig.asp=0.8}
+df_monoculture <- results %>% group_by(species,time,condition)  %>%
+  summarise(y=median(log10(quantity)),std=sd(log10(quantity),na.rm = T)) %>%
+  filter(condition %in% c("none","all"))
+df_coculture <- results %>% group_by(species,time,condition)  %>%
+  summarise(y=median(log10(quantity)),std=sd(log10(quantity),na.rm = T)) %>%
+  filter(condition %in% c("less","equal","more"))
+growth_curve_mono <- ggplot(df_monoculture,aes(time,y,color=species)) +
+  geom_line(lty="dashed",size=1) +
+    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5) + 
+    scale_color_discrete(labels=c("EC"="E. coli","PP"="P. putida"),name="Species") +
+    geom_point(data = df_monoculture) + 
+    scale_y_continuous(limits = c(5,10.8),breaks = 5:10) +
+    ylab("Log(quantity)") + xlab("Time (h)") +
+    theme_bw() +
+    theme(legend.position = c(0.7,0.2),
+          legend.text = element_text(face = "italic"))
+growth_curves <- lapply(c("less","equal","more"), function(x){
+  ggplot(mapping = aes(time,y,color=species)) + 
+    geom_line(lty="dashed",size=1,alpha=1/3,data = df_monoculture) +
+    geom_line(size=1,data=filter(df_coculture,condition==x)) +
+    scale_color_discrete(labels=c("EC"="E. coli","PP"="P. putida"),name="Species") +
+    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = df_monoculture,alpha=1/3) + 
+    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = filter(df_coculture,condition==x)) + 
+    geom_point(data = df_monoculture,alpha=1/3) + 
+    geom_point(data=filter(df_coculture,condition==x)) +
+    scale_y_continuous(limits = c(5,10.8),breaks = 5:10) +
+    ylab("Log(quantity)") + xlab("Time (h)") +
+    theme_bw() +
+    theme(legend.position = c(0.7,0.2),
+          legend.text = element_text(face = "italic"))
+})
+
+plot_grid(growth_curve_mono,plotlist = growth_curves,ncol=2,labels = "AUTO")
+ggsave("figure 1.tiff",path="figures")
+#export::graph2ppt(file="figures.pptx",append=TRUE)
+
+```
+
+
+
+## 对24h时的最终状态进行统计分析
+首先，分析24h时共培养与单独培养条件下 E. coli 的生物量（A）。 其次，分析24h时共培养与单独培养条件下 P. putida 的生物量（B）。
+差异在统计学上是显著的，不过具体数值却比较接近。
+
+```{r fig.width=12}  
+organism <- c("EC","PP")
+organsim_fullname <- c("EC"="E. coli","PP"="P. putida")
+ref_group <- c("all","none")
+
+plots <- lapply(c(1,2), function(x){
+  df <- results %>% filter(species == organism[[x]]) %>% select(condition,quantity,time)
+  df$condition <- relevel(df$condition, ref_group[[x]])
+  ggplot(df,aes(condition,log10(quantity))) + 
+    geom_boxplot() + 
+    geom_jitter() + 
+    facet_wrap(~time)+   # 分面作图，结果更清楚
+     xlab("Condition") + ylab("Log10(quantity)")+
+    scale_y_continuous(limits = c(5,11.3),breaks = 5:10) +
+    labs(subtitle = organsim_fullname[[organism[[x]]]]) +
+    geom_text(x=1,y=11,label=paste0(df$time,"h"),color="grey",vjust = "inward",hjust="center",inherit.aes = F,data = NULL) +
+    stat_compare_means(ref.group = ref_group[[x]],label = "p.signif") +
+    theme(plot.subtitle = element_text(face = "italic"),
+          strip.background = element_blank(),
+          strip.text = element_blank())
+})
+plot_grid(plotlist = plots,ncol=2,labels = "AUTO")
+
+```
+
+```{r fig.width=12} 
+results_final <- tidyr::unite(results, species_time, species,time,remove = FALSE)
+results_final$species_time <- as.factor(results_final$species_time)
+results_final$species <- as.factor(results_final$species)
+levels(results_final$species) <- c("E. coli","P. putida")
+levels(results_final$condition) <- c("mono","less","equal","more","mono")
+results_final$species_time <- factor(results_final$species_time, levels = c("EC_0", "EC_0.5", "EC_1", "EC_2", "EC_4", "EC_8", "EC_24", "PP_0", "PP_0.5", "PP_1", "PP_2", "PP_4", "PP_8", "PP_24"))
+groups <- levels(results_final$species_time)
+
+plots <- lapply(1:length(groups),function(i){  #不分面，循环，布局规整
+  df <- results_final %>% filter(species_time == groups[[i]]) %>% select(species,condition,quantity,time)
+  df$condition <- relevel(df$condition, "mono")
+  ggplot(df,aes(condition,log10(quantity))) + 
+    geom_boxplot() + 
+    geom_jitter() +  
+    xlab("Condition") + ylab("Log10(quantity)")+
+    scale_x_discrete(labels=c("mono","1:1000","1:1","1000:1"))+
+    scale_y_continuous(limits = c(5,11.3),breaks = 5:10) +
+    labs(subtitle =df$species )+
+    geom_text(x=1,y=11,label=paste0(df$time,"h"),color="grey",vjust = "inward",hjust="center",inherit.aes = F,data = NULL) +
+    stat_compare_means(ref.group = "mono",label = "p.signif", label.y = 11) +
+    theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
+          plot.subtitle = element_text(face = "italic"))
+})
+
+plot_grid(plot_grid(plotlist = plots,labels = "AUTO",ncol=5),ncol=1)
+ggsave("figure s1.tiff",path="figures")
+#export::graph2ppt(file="figures.pptx",append=TRUE)
+
+
+```
+
+
+
+## 计算共培养体系中 ratio 的实时变化
+```{r}
+results %>% 
+  filter(condition %in% c("less","equal","more"), species=="EC") %>% 
+  spread(species,quantity) %>%
+  select(-Well, -CT,-dilution) -> a
+results %>% 
+  filter(condition %in% c("less","equal","more"), species=="PP") %>%
+  spread(species,quantity) %>%
+  select(-Well, -CT,-dilution)  -> b
+idx <- a$sample == b$sample
+a <- a[idx,]
+b <- b[idx,]
+a$PP <- b$PP
+ratio <- a %>% mutate(ratio=EC/PP) 
+
+### stats
+
+ratio1 <- ratio %>% filter(condition=="more") %>% mutate(time=factor(time))
+aov <-  aov(ratio~time,ratio1)
+TukeyHSD(aov)
+
+```
+```{r}
+shapiro.test(x=residuals(aov))
+
+```
+```{r}
+(p1 <- pairwise.wilcox.test(ratio1$ratio,ratio1$time,p.adjust.method = "BH"))
+
+```
+```{r}
+ratio2 <- ratio %>% filter(condition=="equal") %>% mutate(time=factor(time))
+aov <-  aov(ratio~time,ratio2)
+TukeyHSD(aov)
+
+```
+```{r}
+shapiro.test(x=residuals(aov))
+
+```
+```{r}
+(p2 <- pairwise.wilcox.test(ratio2$ratio,ratio2$time,p.adjust.method = "BH"))
+
+```
+```{r}
+ratio3 <- ratio %>% filter(condition=="less") %>% mutate(time=factor(time))
+aov <-  aov(ratio~time,ratio3)
+TukeyHSD(aov)
+
+```
+```{r}
+shapiro.test(x=residuals(aov))
+
+```
+```{r}
+(p3 <- pairwise.wilcox.test(ratio3$ratio,ratio3$time,p.adjust.method = "BH"))
+
+```
+```{r}
+#plots <- lapply(c(p1,p2,p3), function(x) corrplot(x$p.value,is.corr = F,type="lower",addCoef.col = "grey",cl.lim = c(0,1)))
+par(mfrow=c(1,3))
+plots <- lapply(list(p1,p2,p3), function(x) corrplot(x$p.value,is.corr = F,type="lower",addCoef.col = "grey"))
+ggsave("figure S2.tiff",path="figures")
+export::graph2ppt(file="figures.pptx",append=TRUE)
+
+```
+
+从上图可以看出，在0-4h期间，ratio之间有时在统计学上并没有显著差异。
+
+在24h的时候，less和equal组ratio间没有显著差异。
+而more和equal之间的差异虽然在统计学上显著，但相对于前期的巨大差异，仍然可以认为是接近的。
+
+
+```{r fig.width=6,fig.asp=0.618}
+ratio.sum <- ratio %>% 
+  group_by(sample) %>%
+  summarise(y=mean(ratio),std=sd(ratio)) %>% 
+  left_join(meta)
+ratio.sum$condition <- factor(ratio.sum$condition,
+                        levels = c("less","equal","more"),
+                        labels = c("1:1000","1:1","1000:1")) 
+plot_ratio <- ggplot(ratio.sum, aes(time,y,shape=condition,color=condition)) + 
+  geom_rect(aes(xmin=23,xmax=25,ymin=0.02,ymax=0.3),
+            fill="lightyellow",color="black",alpha=0.1) +
+  geom_line(size=1,show.legend = F) +
+  geom_point(size=2,show.legend = F) +
+  geom_errorbar(aes(ymin=y-std,ymax=y+std),show.legend = F) +
+  geom_text(aes(x=9,label=condition),hjust=0,vjust=c(0,0,1),
+            data = filter(ratio.sum,time==8),
+            show.legend = F) +
+
+  # directlabels::geom_dl(aes(label=condition),method="smart.grid") +
+  scale_y_log10(labels=formatC,breaks=10^(-3:3)) +
+  labs(x="Time (h)", y="Ratio (EC/PP)") +
+  # scale_x_continuous(limits = c(-5,NA)) +
+  theme(legend.position = c(0.8,0.75))
+
+ratio_24h <- ratio %>% filter(time==24)
+plot_ratio_stats <- ggplot(ratio_24h,aes(condition,ratio,color=condition)) +
+  geom_boxplot(fill="lightyellow") + 
+  geom_jitter() + 
+  stat_compare_means(
+    comparisons = list(c("less","equal"),c("less","more"),c("equal","more")),
+    label="p.format") +
+   scale_x_discrete(breaks=c("less","equal","more"),labels=c("1:1000","1:1","1000:1"))+
+  # labs(subtitle = "comparison of EC/PP ratios (24h)") +
+  xlab("Condition") + ylab("Ratio (EC/PP)") +
+  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
+        legend.position = "none",
+        panel.background = element_rect(fill="lightyellow"
+      ))
+
+plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
+ggsave("figure 2.tiff",path="figures")
+export::graph2ppt(file="figures.pptx",append=TRUE)
+# export::graph2ppt()
+```
+
+
+## Gene expression analysis
+# raw data
+每个文库测序原始数据量，短序列的比对率。
+```{r}
+tableS1 <- read.xlsx("D:/community_assemble/RNA-seq/data/tableS1.xlsx")
+summary(tableS1)
+```
+
+在每个样本中，Aligned reads两个物种的相对比例。
+
+```{r fig.asp=1.5,width=4.5}
+ht_counts <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/ht_counts.rds")
+ht_counts$group <- factor(ht_counts$group,levels = c("none_0h","none_4h","none_8h","none_24h","less_0h","less_4h","less_8h","less_24h","equal_0h","equal_4h","equal_8h","equal_24h","more_0h","more_4h","more_8h","more_24h","all_0h","all_4h","all_8h","all_24h"),labels = c("P. putida_0h","P. putida_4h","P. putida_8h","P. putida_24h","1:1000_0h","1:1000_4h","1:1000_8h","1:1000_24h","1:1_0h","1:1_4h","1:1_8h","1:1_24h","1000:1_0h","1000:1_4h","1000:1_8h","1000:1_24h","E. coli_0h","E. coli_4h","E. coli_8h","E. coli_24h"))
+ht_counts_total <- ht_counts %>% group_by(sample_id, group, organism) %>%
+  summarise(sum_of_reads=sum(count)) %>%
+  group_by(sample_id) %>% 
+  mutate(proportion=sum_of_reads/sum(sum_of_reads))
+samples <- levels(ht_counts_total$group)
+plots <- lapply(1:length(samples),function(i){
+  sample_group <- samples[[i]]
+  df <- filter(ht_counts_total,group==sample_group)
+  ggplot(df,aes(x=sample_id, y=proportion,fill=organism)) + 
+    geom_bar(stat = "identity",position = "stack") + 
+    scale_y_continuous(labels = function(l)paste(format(l*100,digits = 2),"%",sep="")) +
+    scale_x_discrete(labels=c("Rep1","Rep2","Rep3")) +
+    scale_fill_discrete(name="Organism: ",labels=c("EC"="E. coli","PP"="P. putida")) +
+    labs(title = sample_group) +
+    theme(legend.text = element_text(face = "italic"),
+          legend.position = "none",
+          axis.title = element_blank())
+})
+legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
+for (i in c(1,5,9,13,17)){
+  plots[[i]] <- plots[[i]] + ylab("Proportion") + theme(axis.text.y = element_text())
+}
+for (i in 17:20){
+  plots[[i]] <- plots[[i]] + xlab("No. of replicates")
+}
+plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
+ggsave("figure S3.tiff",path="figures")
+export::graph2ppt(file="figures.pptx",append=TRUE)
+
+# # following is the faceted plot (inconvinent to add subplot labels)
+# ggplot(ht_counts_total,aes(x=sample_id, y=proportion,fill=organism)) + 
+#   geom_bar(stat = "identity",position = "stack") + 
+#   facet_wrap(~group,scale="free_x",ncol=8) +
+#   scale_y_continuous(labels = function(l)paste(format(l*100,digits = 2),"%",sep="")) +
+#   scale_x_discrete(labels=c("1","2","3")) +
+#   scale_fill_discrete(name="Organism: ",labels=c("EC"="E. coli","PP"="P. putida")) +
+#   labs(x="No. of replicates",y="Proportion",
+#        title=expression(paste("Reads count of ", italic("E. coli")," and ", italic("P. putida"), " in each RNA-seq library"))) +
+#   theme(legend.text = element_text(face = "italic"),
+#         legend.position = c(0.7,0.1),
+#         legend.direction = "horizontal")
+
+```
+
+
+```{r fig.width=6, fig.asp=0.8}
+# only cocultures
+plot_grid(legend, plot_grid(plotlist = plots[5:16],labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
+export::graph2ppt(file="figures.pptx",append=TRUE)
+```
+
+# Identify gene expression changes
+This step is a time consuming step. Use the precalculated DEG if possible.
+```{r comparisons}
+comparisons.EC <- list(
+  c("less_0h","all_0h"),
+   c("less_4h","all_4h"),
+   c("less_8h","all_8h"),
+   c("less_24h","all_24h"),
+   c("equal_0h","all_0h"),
+   c("equal_4h","all_4h"),
+   c("equal_8h","all_8h"),
+   c("equal_24h","all_24h"),
+   c("more_0h","all_0h"),
+   c("more_4h","all_4h"),
+   c("more_8h","all_8h"),
+   c("more_24h","all_24h"))
+
+comparisons.PP <- list(
+   c("less_0h","none_0h"),
+   c("less_4h","none_4h"),
+   c("less_8h","none_8h"),
+   c("less_24h","none_24h"),
+   c("equal_0h","none_0h"),
+   c("equal_4h","none_4h"),
+   c("equal_8h","none_8h"),
+   c("equal_24h","none_24h"),
+   c("more_0h","none_0h"),
+   c("more_4h","none_4h"),
+   c("more_8h","none_8h"),
+   c("more_24h","none_24h"))
+```
+
+
+```{r run_DESeq2, eval=FALSE}
+dds.EC <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/dds.EC.rds")
+dds.PP <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/dds.PP.rds")
+
+# dds.EC$group <- relevel(dds.EC$group, "all_0h")
+# dds.PP$group <- relevel(dds.PP$group, "none_0h")
+
+dds.EC <- DESeq(dds.EC)  # this step is time consuming  标准化
+dds.PP <- DESeq(dds.PP)
+# dds.EC <- lfcShrink() )  与每个时间点的单菌比较，找差异基因
+DEG_results.EC <- myDEG_Results(dds=dds.EC, comparison = comparisons.EC)
+DEG_results.PP <- myDEG_Results(dds=dds.PP, comparison = comparisons.PP)
+saveRDS(dds.EC,"data/dds.EC.2.rds")
+saveRDS(dds.PP,"data/dds.PP.2.rds")
+saveRDS(DEG_results.EC,"data/DEG_results.EC.rds")
+saveRDS(DEG_results.PP,"data/DEG_results.PP.rds")
+```
+
+load precalculated DEG results.
+
+```{r}
+dds.EC <- readRDS("data/dds.EC.2.rds")
+dds.PP <- readRDS("data/dds.PP.2.rds")
+DEG_results.EC <- readRDS("data/DEG_results.EC.rds")
+DEG_results.PP <- readRDS("data/DEG_results.PP.rds")
+```
+
+# RNA-seq clustering
+
+```{r}
+list_of_vsd <- lapply(list(dds.EC,dds.PP),function(dds){
+  vst(dds,blind = F)
+})
+list_of_vsd[[1]]$ratio0 <- factor(list_of_vsd[[1]]$ratio0,
+                                  levels = c("none","less","equal","more","all"),
+                        labels = c("P. putida","1:1000","1:1","1000:1","E. coli"))
+list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
+                                  levels = c("none","less","equal","more","all"),
+                        labels = c("P. putida","1:1000","1:1","1000:1","E. coli"))
+
+```
+
+
+```{r fig.width=10,fig.asp=0.618}
+list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
+  myPlotPCA(vsd) + 
+    facet_wrap(~time,ncol=4) +
+    directlabels::geom_dl(aes(label=ratio0),method = "smart.grid",size=2) +  #文本代替标签 位置标注的不好,改size没用
+    scale_color_manual(limits=c("E. coli","1:1000","1:1","1000:1","P. putida"),
+                       
+                       values = brewer.pal(9,"YlOrRd")[5:9],
+                       name="initial ratio\n(EC/PP)") +
+    theme(legend.position = "P. putida")
+  })
+
+legend <- get_legend(list_of_PCA_plot[[1]] + theme(legend.position = "right"))
+
+plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
+ggsave("figure 3.tiff",path="figures")
+export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
+
+```
+
+
+```{r upset plot for EC,fig.width=5}
+library(UpSetR)   #可视化
+EC_deg <- lapply(DEG_results.EC, function(x) x$gene)
+names(EC_deg) <- sapply(comparisons.EC, function(x)x[-2])
+
+upset_deg_EC <- upset(fromList(EC_deg),
+                      sets=rev(names(EC_deg)[lapply(EC_deg, length)>0]),
+                      nintersects = 10,
+                      keep.order = T,
+                      mb.ratio = c(0.55, 0.45),
+                      order.by = "freq")
+
+
+
+```
+
+```{r upset plot for PP,fig.width=5,fig.asp=0.55}
+library(UpSetR)
+
+PP_deg <- lapply(DEG_results.PP, function(x) x$gene)
+names(PP_deg) <- sapply(comparisons.PP, function(x)x[-2])
+pp_selected_sets <- rev(c("less_24h","equal_4h","equal_24h","more_4h","more_8h"))
+
+upset(fromList(PP_deg),
+      sets=rev(names(PP_deg)[lapply(PP_deg, length)>0]),
+      nintersects = 10,keep.order = T,mb.ratio = c(0.6, 0.4),order.by = "freq")
+
+
+upset(fromList(PP_deg),
+      sets=pp_selected_sets,
+      nintersects = 10,keep.order = T,mb.ratio = c(0.6, 0.4),order.by = "freq")
+ggsave("figure S8.tiff",path="figures")
+```
+
+```{r fig.asp=0.8}
+## 差异表达基因个数的变化
+
+# E. coli
+EC_up_deg <- lapply(DEG_results.EC, function(x){with(x,gene[expression=="up"])})
+EC_dn_deg <- lapply(DEG_results.EC, function(x){with(x,gene[expression=="dn"])})
+names(EC_up_deg) <- sapply(comparisons.EC, function(x)x[-2])
+names(EC_dn_deg) <- sapply(comparisons.EC, function(x)x[-2])
+
+sapply(EC_up_deg, length) -> up
+sapply(EC_dn_deg, length) -> dn
+dn <- -dn
+deg_count_EC <- rbind(up,dn)
+p_deg_count_EC <- reshape2::melt(deg_count_EC) %>% 
+  separate(Var2,into = c("ratio0","time")) %>%
+  mutate(time=as.numeric(gsub("h","",time))) %>%
+  mutate(ratio0=factor(ratio0,levels = c("less","equal","more"),labels = c("1:1000","1:1","1000:1"))) %>%
+  ggplot(aes(time,value,group=Var1,color=Var1)) + 
+  geom_line(size=1) + 
+  # geom_text_repel(aes(label=value)) +
+  facet_wrap(~ratio0) + 
+  # xlim(c(4,24))+
+  scale_color_discrete(name="Gene expression:") +
+  scale_y_continuous(labels = function(x){abs(x)}) +
+  geom_point() +
+  labs(x="Time(h)",y="Count of DEGs",title=expression(paste("DEGs in ",italic("E. coli")))) +
+  theme(legend.position = c(0.618,1),
+        legend.justification = c(0.5,-0.65),
+        legend.direction = "horizontal")
+
+
+# P. putida
+PP_up_deg <- lapply(DEG_results.PP, function(x){with(x,gene[expression=="up"])})
+PP_dn_deg <- lapply(DEG_results.PP, function(x){with(x,gene[expression=="dn"])})
+names(PP_up_deg) <- sapply(comparisons.PP, function(x)x[-2])
+names(PP_dn_deg) <- sapply(comparisons.PP, function(x)x[-2])
+
+sapply(PP_up_deg, length) -> up
+sapply(PP_dn_deg, length) -> dn
+dn<- - dn
+deg_count_PP <- rbind(up,dn)
+p_deg_count_PP <- reshape2::melt(deg_count_PP) %>% 
+  separate(Var2,into = c("ratio0","time")) %>%
+  mutate(time=as.numeric(gsub("h","",time))) %>%
+  mutate(ratio0=factor(ratio0,levels = c("less","equal","more"),labels = c("1:1000","1:1","1000:1"))) %>%
+  ggplot(aes(time,value,group=Var1,color=Var1)) + 
+  geom_line(size=1) + 
+  # geom_text_repel(aes(label=value)) +
+  facet_wrap(~ratio0) + 
+  scale_color_discrete(name="Gene expression:") +
+  geom_point() +
+  scale_y_continuous(labels = function(x){abs(x)}) +
+  # xlim(c(4,24))+
+  labs(x="Time(h)",y="Count of DEGs",title=expression(paste("DEGs in ",italic("P. putida")))) +
+  theme(legend.position = c(0.618,1),
+        legend.justification = c(0.5,-0.65),
+        legend.direction = "horizontal")
+
+
+plot_grid(p_deg_count_EC,p_deg_count_PP,labels = "AUTO",ncol = 1)
+ggsave("figure 4.tiff",path="figures")
+export::graph2ppt(file="figures.pptx",append=TRUE)
+```
+
+```{r}
+deg_count_EC %>% abs() %>% sum()
+deg_count_PP %>% abs() %>% sum()
+
+```
+
+Venn Diagram
+
+“less”组*E. coli*和“more”组的*P. putida*差异表达基因随时间变化。在这两个组合中，不仅差异表达基因数目多，且其中的很大一部分都是特异性的表达。
+ 
+```{r }
+library(ggVennDiagram)
+library(ggplot2)
+
+ratio0 <- c("less","equal","more")
+deg_Venn_plot_EC <- lapply(1:3, function(i){
+  gene_list <- lapply(DEG_results.EC[(i*4-3):(i*4)], function(x){x$gene})
+  ggVennDiagram(gene_list,label = "count",
+                category.names = c("0h","4h","8h","24h")) +
+    scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
+    coord_equal() +
+    labs(title=ratio0[[i]]) +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust=0.5))
+})
+
+deg_Venn_plot_PP <- lapply(1:3, function(i){
+  gene_list <- lapply(DEG_results.PP[(i*4-3):(i*4)], function(x){x$gene})
+  ggVennDiagram(gene_list,label = "count",
+                category.names = c("0h","4h","8h","24h")) +
+    scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
+    coord_equal() +
+    labs(title=ratio0[[i]]) +
+    theme(legend.position = "none",
+          plot.title = element_text(hjust=0.5))
+})
+
+plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
+          labels = "AUTO")
+ggsave("figure S9.tiff",path="figures")
+```
+
+
+# gseKEGG 分析
+
+
+GSEA分析需要使用全谱。因此需要重新获得差异表达基因的列表。
+
+```{r}
+full_DEG_results.EC <- myDEG_Results(dds.EC,comparison = comparisons.EC,filtered = F)
+full_DEG_results.PP <- myDEG_Results(dds.PP,comparison = comparisons.PP,filtered = F)
+
+```
+
+## 计算 GSEA 的结果
+
+### 计算 *E. coli*中 GSEA KEGG 的结果
+
+```{r gseKEGG_results.EC,fig.width=12,fig.asp=1}
+library(clusterProfiler)
+library(enrichplot)
+
+gseKEGG_results.EC <- lapply(full_DEG_results.EC, function(x){
+  if (nrow(x) < 1) return(NULL)
+  geneList <- x$log2FoldChange
+  names(geneList) <- x$gene
+  geneList <- sort(geneList,decreasing = T) #排序
+  tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
+})
+```
+
+### 计算 *E. coli* GSEA GO分析的结果
+
+```{r }
+library(org.EcK12.eg.db)
+full_geneList.EC <- lapply(full_DEG_results.EC, function(x){
+  geneList <- x$log2FoldChange
+  names(geneList) <- bitr_kegg(x$gene,
+                               fromType = "kegg",
+                               toType = "ncbi-geneid",
+                               organism = "eco")$`ncbi-geneid`
+  geneList <- sort(geneList,decreasing = T)
+  return(geneList)
+})
+
+
+gseGO_MF_results.EC <- lapply(full_geneList.EC, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.EcK12.eg.db,
+        ont = "MF")
+})
+
+gseGO_CC_results.EC <- lapply(full_geneList.EC, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.EcK12.eg.db,
+        ont = "CC")
+})
+
+gseGO_BP_results.EC <- lapply(full_geneList.EC, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.EcK12.eg.db,
+        ont = "BP")
+})
+```
+
+### 计算 *P. putida* 中 GSEA KEGG 的结果
+
+```{r}
+gseKEGG_results.PP <- lapply(full_DEG_results.PP, function(x){
+  if (nrow(x) < 1) return(NULL)
+  geneList <- x$log2FoldChange
+  names(geneList) <- x$gene
+  geneList <- sort(geneList,decreasing = T)
+  tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
+})
+```
+
+
+### 计算 *P. putida* 中 GSEA GO 的结果
+```{r}
+library(AnnotationHub)
+ah <- AnnotationHub()
+(pp <- query(ah,c("putida","KT2440")))
+# pp["AH73771"]
+# pp["AH73772"]
+# pp["AH73773"]
+org.ppu.eg.db <- ah[["AH73772"]]
+```
+
+```{r }
+full_geneList.PP <- lapply(full_DEG_results.PP, function(x){
+  geneList <- x$log2FoldChange
+  names(geneList) <- bitr_kegg(x$gene,
+                               fromType = "kegg",
+                               toType = "ncbi-geneid",
+                               organism = "ppu")$`ncbi-geneid`
+  geneList <- sort(geneList,decreasing = T)
+  return(geneList)
+})
+
+
+gseGO_MF_results.PP <- lapply(full_geneList.PP, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.ppu.eg.db,
+        ont = "MF")
+})
+
+gseGO_CC_results.PP <- lapply(full_geneList.PP, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.ppu.eg.db,
+        ont = "CC")
+})
+
+gseGO_BP_results.PP <- lapply(full_geneList.PP, function(geneList){
+  gseGO(geneList, 
+        OrgDb = org.ppu.eg.db,
+        ont = "BP")
+})
+```
+
+```{r gseKEGG_plots.EC,fig.width=8,fig.asp=2}
+gseKEGG_plots.EC <- lapply(seq_along(gseKEGG_results.EC), function(i){
+  x <- gseKEGG_results.EC[[i]]
+  label <- names(gseKEGG_results.EC)[[i]]
+  if (nrow(data.frame(x)) < 1) return(NULL)
+  geneset <- seq(1,nrow(data.frame(x)))
+  gseaplot2(x,geneSetID = geneset,pvalue_table = T) +
+    labs(title=label) +
+    theme(legend.position = "right")
+})
+
+for (i in seq_along(gseKEGG_plots.EC)){
+  plot <- gseKEGG_plots.EC[[i]]
+  label <- names(gseKEGG_results.EC)[[i]]
+  if(is.null(plot)){
+    gseKEGG_plots.EC[[i]] <- ggdraw(NULL) + draw_figure_label(label, position = "top")
+  }
+  else{
+    gseKEGG_plots.EC[[i]] <- gseKEGG_plots.EC[[i]] + draw_figure_label(label, position = "top")
+  }
+}
+
+# 只有 less 组（即前3个）有结果
+plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol = 1,labels = "AUTO")
+
+ggsave("figure S10.tiff",path="figures")
+# export::graph2ppt(plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol=1,labels = "AUTO"),file="EC_gseKEGG_gseaplot.pptx")
+```
+
+```{r gseGO_analysis,fig.width=12,fig.asp=1}
+gseGO_MF_gseplots.EC <- lapply(gseGO_MF_results.EC, function(x){
+  if (nrow(data.frame(x)) < 1) return(NULL)
+  geneset <- seq(1,nrow(data.frame(x)))
+  gseaplot2(x,geneSetID = geneset)
+})
+
+# 只有 less 组（即前3个）有结果
+plot_grid(plotlist = gseGO_MF_gseplots.EC[1:3])
+
+ggsave("figure S11.tiff",path="figures")
+
+
+```
+
+## GSEA 结果可视化
+
+### GSEA KEGG dotplot
+
+
+获取GSEA KEGG结果中的数据框，以便统一绘图。
+
+```{r }
+# 计算gsea dotplot需要的数据框
+gsea_ck_df <- function(gsea_results = gsea_results){
+  gsea_dotplot_df <- vector("list",length = length(gsea_results))
+  
+  for (i in seq_along(gsea_results)){
+    df <- data.frame(gsea_results[[i]])
+    if (nrow(df)<1) {
+      gsea_dotplot_df[[i]] <- NULL
+    }
+    else{
+      df$comparison <- names(gsea_results[i])
+      df$GeneRatio <- (str_count(df$core_enrichment,"/") + 1) / df$setSize
+      gsea_dotplot_df[[i]] <- df
+    }
+    
+  }  
+  
+  return(gsea_dotplot_df)
+}
+```
+
+
+```{r }
+# df1 是 E. coli gseKEGG 结果的数据框
+df1 <- do.call("rbind",gsea_ck_df(gseKEGG_results.EC))
+
+# df2 是 P. putida gseKEGG 结果的数据框
+df2 <- do.call("rbind",gsea_ck_df(gseKEGG_results.PP))
+
+```
+
+使用 Kappa 对 GSEA 分析结果的条目进行语义分析和聚类。
+
+```{r}
+#' @param df a data frame of gsea result, can be easily obtained by `data.frame(gsea)`
+#' @return a kappa matrix
+calculate_kappa_matrix <- function(df){
+  data <- df[,c("Description","core_enrichment")] %>% 
+    separate_rows(.data$core_enrichment,sep="/")
+  terms <- data$Description %>% unique() %>% sort()
+  genes <- data$core_enrichment %>% unique() 
+  nterms <- length(terms)
+  ngenes <- length(genes)
+  kappa <- matrix(0,nterms,nterms)
+  rownames(kappa) <- terms
+  colnames(kappa) <- terms
+  for (i in 1:nterms){
+  	for (j in i:nterms){
+  	  if (i==j){
+  		kappa[i,j] <- 1
+  	  }else{
+  		termA <- terms[[i]]
+  		termB <- terms[[j]]
+  		geneA <- (filter(data,Description==termA))[,"core_enrichment"]
+  		geneB <- (filter(data,Description==termB))[,"core_enrichment"]
+  		a <- length(intersect(geneA,geneB))   # A,B均有的基因数目
+  		b <- length(setdiff(geneB,geneA))     # B有A没有的基因数目
+  		c <- length(setdiff(geneA,geneB))     # A有B没有的基因数目
+  		d <- length(setdiff(genes,union(geneA,geneB)))  # A,B均没有的基因数目
+  		# OA <- (a+d)/ngenes                   # observed agreement
+  		# AC <- ((a+c)*(a+b)+(c+d)*(b+d))/ngenes^2  # agreement of chance: is the agreement by chance positive plus the agreement by chance for negative
+  		# kappa[i,j] <- (OA-AC)/(1-AC)   # substrate and divide that by 1 minus agreement by chance to standardlize this coefficienct
+  		kappa[i,j] <- ((a+d)*ngenes-(a+b)*(a+c)-(c+d)*(b+d))/(ngenes^2-(a+b)*(a+c)-(c+d)*(b+d))
+  		kappa[j,i] <- kappa[i,j]
+  	  }
+  	}
+  }
+  return(kappa)
+}
+```
+
+*E. coli* GSEA KEGG 的结果可视化
+
+```{r fig.width=10,fig.asp=1}
+kappa <- calculate_kappa_matrix(df1)
+tree <- nj(as.dist(1-kappa))
+(p <- ggtree(tree) + geom_tiplab() + theme_classic() + xlim(NA,1.5))
+term_levels <- (p$data %>% filter(isTip==TRUE) %>% arrange(desc(y)))[,"label"]
+
+data <- df1 %>% separate(comparison,into = c("ratio0","time"),extra = "drop") %>%
+  mutate(time=factor(time,levels = c("0h","4h","8h","24h")),
+         ratio0=factor(ratio0,levels = c("less","equal","more")),
+         Description=factor(Description,levels = term_levels$label))
+
+ggplot(data,aes(time,Description,size=GeneRatio,color=enrichmentScore)) + 
+  geom_point() +
+  facet_wrap(~ratio0) +
+  scale_color_gradient2(low = muted("blue"),high = muted("red"))
+
+```
+
+
+*P. putida* GSEA KEGG 的结果可视化
+
+```{r fig.width=10}
+kappa <- calculate_kappa_matrix(df2)
+tree <- nj(as.dist(1-kappa))
+(p <- ggtree(tree) + geom_tiplab() + theme_classic() + xlim(NA,1.5))
+term_levels <- (p$data %>% filter(isTip==TRUE) %>% arrange(desc(y)))[,"label"]
+
+data <- df2 %>% separate(comparison,into = c("ratio0","time"),extra = "drop") %>%
+  mutate(time=factor(time,levels = c("0h","4h","8h","24h")),
+         ratio0=factor(ratio0,levels = c("less","equal","more")),
+         Description=factor(Description,levels = term_levels$label))
+
+ggplot(data,aes(time,Description,size=GeneRatio,color=enrichmentScore)) + 
+  geom_point() +
+  facet_wrap(~ratio0) +
+  scale_color_gradient2(low = muted("blue"),high = muted("red"))
+
+```
+
+
+*E. coli*中全谱GSEA KEGG分析的结果。
+
+```{r,fig.width=8,fig.asp=1}
+list_of_gseKEGG_results_df <- lapply(list(df1,df2), function(x){
+  if (is.null(x)) return(NULL)
+  x %>% 
+    separate(comparison, into = c("ratio0","time"),sep="_",extra="drop") %>%
+  mutate(time=factor(gsub("h","",time),levels = c(0,4,8,24)),
+         ratio0=factor(ratio0, levels = c("less","equal","more")),
+         sign=ifelse(enrichmentScore>0,"activated","suppressed"))
+})
+
+list_of_gseKEGG_dotplot <- lapply(list_of_gseKEGG_results_df, function(df){
+  ggplot(df,aes(time,Description,size=GeneRatio,color=p.adjust)) +
+  geom_point() + 
+  facet_grid(sign~ratio0,scales = "free_y") +
+  scale_color_gradient(limits=c(0,0.05),
+                       low="red", high="blue") +
+  scale_size_continuous(breaks = c(0.2,0.6,1.0),
+                        labels = c("0.2","0.6","1.0"),
+                        limits = c(0.2,1.0)) +
+    scale_x_discrete(limits=c("0","4","8","24")) +
+    labs(x="time(h)",y="") +
+    theme(legend.position = "none")
+})
+```
+
+
+```{r,fig.width=8,fig.asp=1}
+library(grid)
+library(gtable)
+p1 <- list_of_gseKEGG_dotplot[[1]] + 
+  labs(subtitle = expression(paste("Gene set enrichment in ",italic("E. coli")))) +
+  theme(legend.position = "right")
+
+# 调整panel的高度
+gp <- ggplotGrob(p1)
+gtable_show_layout(gp)
+facet.rows <- gp$layout$t[grepl("panel",gp$layout$name)]
+y.var <- sapply(ggplot_build(p1)$layout$panel_scales_y,
+                function(l) length(l$range$range))
+gp$heights[facet.rows] <- gp$heights[facet.rows] * y.var
+grid.draw(gp)
+ggsave("figure S12.tiff",path="figures")
+
+
+```
+
+
+*P. putida*中全谱GSEA KEGG分析的结果。
+
+```{r,fig.width=8,fig.asp=1}
+library(grid)
+library(gtable)
+p2 <- list_of_gseKEGG_dotplot[[2]] + 
+  labs(subtitle = expression(paste("Gene set enrichment in ",italic("P. putida")))) +
+  theme(legend.position = "right")
+
+# 调整panel的高度
+gp <- ggplotGrob(p2)
+gtable_show_layout(gp)
+facet.rows <- gp$layout$t[grepl("panel",gp$layout$name)]
+y.var <- sapply(ggplot_build(p1)$layout$panel_scales_y,
+                function(l) length(l$range$range))
+gp$heights[facet.rows] <- gp$heights[facet.rows] * y.var
+grid.draw(gp)
+ggsave("figure S13.tiff",path="figures")
+
+```
+
+*E. coli* 中 GSEA GO 的结果
+
+```{r}
+d1 <- do.call("rbind",gsea_ck_df(gseGO_BP_results.EC))
+d2 <- do.call("rbind",gsea_ck_df(gseGO_CC_results.EC))
+d3 <- do.call("rbind",gsea_ck_df(gseGO_MF_results.EC))
+
+plotlist <- lapply(list(d1,d2,d3), function(df){
+  df %<>% separate(comparison, into = c("ratio0","time"),sep="_",extra="drop") %>%
+  mutate(time=factor(gsub("h","",time),levels = c(0,4,8,24)),
+         ratio0=factor(ratio0, levels = c("less","equal","more")),
+         sign=ifelse(enrichmentScore>0,"activated","suppressed"))
+  ggplot(df,aes(time,Description,size=GeneRatio,color=p.adjust)) +
+  geom_point() + 
+  facet_grid(sign~ratio0,scales = "free_y") +
+  # scale_color_gradient(limits=c(0,0.05),
+  #                      low="red", high="blue") +
+  # scale_size_continuous(breaks = c(0.2,0.6,1.0),
+  #                       labels = c("0.2","0.6","1.0"),
+  #                       limits = c(0.2,1.0)) +
+    scale_x_discrete(limits=c("0","4","8","24")) +
+    labs(x="time(h)",y="") +
+    theme(legend.position = "none")
+})
+
+```
+
+
+```{r fig.width=8,fig.asp=2}
+plot_grid(plotlist = plotlist,ncol = 1)
+ggsave("figure S14.tiff",path="figures")
+
+```
+
+
+
+不用全谱的话不科学，用全谱的话没法看。现在应该怎么办？
+
+再三权衡之下，决定对数据进行过滤，得出影响最大的那些通路。
+
+enrichmentScore是一个重要的参数，先尝试仅显示 enrichmentScore 最大和最小的几个值。
+
+```{r}
+list_of_gseKEGG_dotplot <- lapply(list_of_gseKEGG_results_df, function(df){
+  x1 <- df %>% arrange(enrichmentScore) %>% head()
+  x2 <- df %>% arrange(enrichmentScore) %>% tail()
+  data <- rbind(x1,x2)
+  ggplot(data,aes(time,Description,size=GeneRatio,color=p.adjust)) +
+  geom_point() + 
+  facet_grid(sign~ratio0,scales = "free_y") +
+  scale_color_gradient(limits=c(0,0.05),
+                       low="red", high="blue") +
+  scale_size_continuous(breaks = c(0.2,0.6,1.0),
+                        labels = c("0.2","0.6","1.0"),
+                        limits = c(0.2,1.0)) +
+    scale_x_discrete(limits=c("0","4","8","24")) +
+    labs(x="time(h)",y="") +
+    theme(legend.position = "none")
+})
+
+plot_grid(plotlist = list_of_gseKEGG_dotplot,labels = "AUTO",ncol = 1,align = "h")
+ggsave("figure S15.tiff",path="figures")
+
+```
+
+这样好像也不合理。
+
+那我们看看几个可用的过滤条件的数值分布情况。
+
+```{r}
+p1 <- ggplot(rbind(df1,df2),aes(enrichmentScore)) + geom_histogram(binwidth = 0.1,col="grey") + labs(title = "enrichmentScore")
+p2 <- ggplot(rbind(df1,df2),aes(GeneRatio)) + geom_histogram(binwidth = 0.1,col="grey") + labs(title = "GeneRatio")
+plot_grid(p1,p2,labels = "AUTO")
+```
+
+# 带标记的火山图
+
+```{r}
+library(DESeq2)
+library(tidyverse)
+DEG_results.EC.raw <- myDEG_Results(dds.EC,comparison = comparisons.EC,filtered = FALSE)
+DEG_results.PP.raw <- myDEG_Results(dds.PP,comparison = comparisons.PP,filtered = FALSE)
+
+
+enriched_genes.EC <- lapply(gseKEGG_results.EC,function(x){
+  # separate_rows(data.frame(x),"core_enrichment",sep="/")
+  df <- data.frame(x)
+  if (nrow(df) > 0) {
+    separate_rows(df,"core_enrichment",sep="/") %>%
+      rename(gene ="core_enrichment")
+  }
+  else{
+    return(NULL)
+  }
+})
+```
+
+
+```{r fig.width=8,fig.asp=1}
+idx <- 1:4
+pathways <- unique(do.call("rbind",enriched_genes.EC[idx])$Description)
+# color value
+color_values <- ggsci::pal_npg("nrc")(length(pathways))
+names(color_values) <- pathways
+volcano_plots.EC <- lapply(idx, function(i){
+  result.raw <- DEG_results.EC.raw[[i]]
+  result <- DEG_results.EC[[i]]
+  genes <- enriched_genes.EC[[i]]
+ggplot() + aes(log2FoldChange,-log10(padj)) +
+    geom_point(data = result.raw,color="grey") +
+    geom_point(data = result, color="black") +
+    geom_point(data=left_join(genes,result),mapping = aes(color=Description)) +
+    scale_color_manual(values = color_values) +  
+    xlab("Log2Foldchange")+
+    theme(legend.position = c(0.01,0.99),
+          legend.justification = c(0,1),
+          legend.title = element_blank(),
+          legend.background = element_blank(),
+          legend.box.background = element_rect(color = "grey",fill = NA))
+  
+})
+plot_grid(plotlist = volcano_plots.EC,labels = "AUTO",align = "hv")
+ggsave("figure 5.tiff",path="figures")
+
+```
+
+*P. putida*中没有enriched pathway，只能绘制一个黑白配的火山图。
+
+```{r fig.width=8,fig.asp=1}
+# PP in "more" coculture, time 0, 4, 8h
+idx <- 9:11
+volcano_plots.PP <- lapply(idx, function(i){
+  result.raw <- DEG_results.PP.raw[[i]]
+  result <- DEG_results.PP[[i]]
+  ggplot() + aes(log2FoldChange,-log10(padj)) +
+    geom_point(data = result.raw,color="grey") +
+    geom_point(data = result, color="black") +
+     xlab("Log2Foldchange")
+})
+plot_grid(plotlist = volcano_plots.PP,labels = "AUTO",align = "hv")
+ggsave("figure S4.tiff",path="figures")
+
+```
+
+
+# pathway viewer
+
+```{r}
+library(pathview)
+pathway_ids.EC <- df1$ID
+pathway_geneList_names.EC <- df1$comparison
+for (i in seq_along(pathway_ids.EC)){
+  idx <- pathway_geneList_names.EC[[i]]
+  pathview(gene.data = pathway_ids.EC[[i]],
+           pathway.id = pathway_geneList_names.EC[[i]],
+           species="eco",
+           gene.idtype = "kegg",
+           kegg.native = T)
+
+}
+```
+
+
+

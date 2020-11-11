@@ -1,0 +1,254 @@
+* Block Type = 384-Well Block
+* Calibration Background is expired  = Yes
+* Calibration Background performed on = 12-21-2016
+* Calibration Normalization FAM-ROX is expired = Yes
+* Calibration Normalization FAM-ROX performed on = 12-21-2016
+* Calibration Normalization VIC-ROX is expired = Yes
+* Calibration Normalization VIC-ROX performed on = 12-21-2016
+* Calibration Pure Dye FAM is expired = Yes
+* Calibration Pure Dye FAM performed on = 12-21-2016
+* Calibration Pure Dye NED is expired = Yes
+* Calibration Pure Dye NED performed on = 12-21-2016
+* Calibration Pure Dye ROX is expired = Yes
+* Calibration Pure Dye ROX performed on = 12-21-2016
+* Calibration Pure Dye SYBR is expired = Yes
+* Calibration Pure Dye SYBR performed on = 12-21-2016
+* Calibration Pure Dye TAMRA is expired = Yes
+* Calibration Pure Dye TAMRA performed on = 12-21-2016
+* Calibration Pure Dye VIC is expired = Yes
+* Calibration Pure Dye VIC performed on = 12-21-2016
+* Calibration ROI is expired  = Yes
+* Calibration ROI performed on = 12-21-2016
+* Calibration Uniformity is expired  = Yes
+* Calibration Uniformity performed on = 12-21-2016
+* Chemistry = SYBR_GREEN
+* Date Created = 2018-08-28 14:58:37 PM CST
+* Date Modified = 2018-08-28 15:01:43 PM CST
+* Experiment Barcode = NA
+* Experiment Comment = NA
+* Experiment File Name = F:\QQ.Data\405385180\FileRecv\生长曲线\2018-08-03 生长曲线.eds
+* Experiment Name = 2018-08-03 204337
+* Experiment Run Start Time = 2018-08-04 05:02:23 AM CST
+* Experiment Run Stop Time = 2018-08-04 06:48:55 AM CST
+* Experiment Type = Standard Curve
+* Instrument Name = 278861596
+* Instrument Serial Number = 278861596
+* Instrument Type = QuantStudio(TM) 6 Flex System
+* Passive Reference = ROX
+* Quantification Cycle Method = Ct
+* Signal Smoothing On = true
+* Stage/ Cycle where Analysis is performed = Stage 2, Step 2
+* User Name = NA
+
+[Results]
+Well	Well Position	Omit	Sample Name	Target Name	Task	Reporter	Quencher	CT	Ct Mean	Ct SD	Quantity	Quantity Mean	Quantity SD	Y-Intercept	R(superscript 2)	Slope	Efficiency	Automatic Ct Threshold	Ct Threshold	Automatic Baseline	Baseline Start	Baseline End	Comments	Tm1	Tm2	Tm3	MTP	EXPFAIL	HIGHSD	NOAMP	PRFDROP	OUTLIERRG
+1	A1	false	Sample 1	EC	UNKNOWN	SYBR	None	16.765	16.545	0.203								true	0.200	true	3	15					N	N	N	N	N	N
+2	A2	false	Sample 1	EC	UNKNOWN	SYBR	None	16.506	16.545	0.203								true	0.200	true	3	15					N	N	N	N	N	N
+3	A3	false	Sample 1	EC	UNKNOWN	SYBR	None	16.365	16.545	0.203								true	0.200	true	3	15					N	N	N	N	N	N
+4	A4	false	Sample 2	EC	UNKNOWN	SYBR	None	33.848	33.848									true	0.200	true	3	15					N	N	N	N	N	N
+5	A5	false	Sample 2	EC	UNKNOWN	SYBR	None	Undetermined	33.848									true	0.200	true	3	15					N	Y	N	Y	N	N
+6	A6	false	Sample 2	EC	UNKNOWN	SYBR	None	Undetermined	33.848									true	0.200	true	3	15					Y	Y	N	Y	N	N
+7	A7	false	Sample 3	EC	UNKNOWN	SYBR	None	16.318	16.341	0.086								true	0.200	true	3	15					N	N	N	N	N	N
+8	A8	false	Sample 3	EC	UNKNOWN	SYBR	None	16.436	16.341	0.086								true	0.200	true	3	15					N	N	N	N	N	N
+9	A9	false	Sample 3	EC	UNKNOWN	SYBR	None	16.268	16.341	0.086								true	0.200	true	3	15					N	N	N	N	N	N
+10	A10	false	Sample 4	EC	UNKNOWN	SYBR	None	16.853	17.032	0.185								true	0.200	true	3	15					N	N	N	N	N	N
+11	A11	false	Sample 4	EC	UNKNOWN	SYBR	None	17.223	17.032	0.185								true	0.200	true	3	15					N	N	N	N	N	N
+12	A12	false	Sample 4	EC	UNKNOWN	SYBR	None	17.021	17.032	0.185								true	0.200	true	3	15					N	N	N	N	N	N
+13	A13	false	Sample 1	PP	UNKNOWN	SYBR	None	26.884	28.281	1.245								true	0.200	true	3	15					Y	N	Y	N	N	N
+14	A14	false	Sample 1	PP	UNKNOWN	SYBR	None	28.687	28.281	1.245								true	0.200	true	3	15					Y	N	Y	N	N	N
+15	A15	false	Sample 1	PP	UNKNOWN	SYBR	None	29.272	28.281	1.245								true	0.200	true	3	15					Y	N	Y	N	N	N
+16	A16	false	Sample 2	PP	UNKNOWN	SYBR	None	17.430	17.588	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+17	A17	false	Sample 2	PP	UNKNOWN	SYBR	None	17.610	17.588	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+18	A18	false	Sample 2	PP	UNKNOWN	SYBR	None	17.723	17.588	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+19	A19	false	Sample 3	PP	UNKNOWN	SYBR	None	26.667	26.297	0.432								true	0.200	true	3	15					Y	N	N	N	N	N
+20	A20	false	Sample 3	PP	UNKNOWN	SYBR	None	26.403	26.297	0.432								true	0.200	true	3	15					Y	N	N	N	N	N
+21	A21	false	Sample 3	PP	UNKNOWN	SYBR	None	25.822	26.297	0.432								true	0.200	true	3	15					Y	N	N	N	N	N
+22	A22	false	Sample 4	PP	UNKNOWN	SYBR	None	17.880	17.869	0.070								true	0.200	true	3	15					N	N	N	N	N	N
+23	A23	false	Sample 4	PP	UNKNOWN	SYBR	None	17.794	17.869	0.070								true	0.200	true	3	15					N	N	N	N	N	N
+24	A24	false	Sample 4	PP	UNKNOWN	SYBR	None	17.933	17.869	0.070								true	0.200	true	3	15					N	N	N	N	N	N
+25	B1	false	Sample 5	EC	UNKNOWN	SYBR	None	26.695	26.350	0.301								true	0.200	true	3	15					N	N	N	N	N	N
+26	B2	false	Sample 5	EC	UNKNOWN	SYBR	None	26.141	26.350	0.301								true	0.200	true	3	15					N	N	N	N	N	N
+27	B3	false	Sample 5	EC	UNKNOWN	SYBR	None	26.215	26.350	0.301								true	0.200	true	3	15					N	N	N	N	N	N
+28	B4	false	Sample 6	EC	UNKNOWN	SYBR	None	14.951	14.800	0.138								true	0.200	true	3	15					N	N	N	N	N	N
+29	B5	false	Sample 6	EC	UNKNOWN	SYBR	None	14.766	14.800	0.138								true	0.200	true	3	15					N	N	N	N	N	N
+30	B6	false	Sample 6	EC	UNKNOWN	SYBR	None	14.681	14.800	0.138								true	0.200	true	3	15					N	N	N	N	N	N
+31	B7	false	Sample 7	EC	UNKNOWN	SYBR	None	36.868	35.271	4.275								true	0.200	true	3	15					Y	N	Y	N	N	N
+32	B8	false	Sample 7	EC	UNKNOWN	SYBR	None	38.518	35.271	4.275								true	0.200	true	3	15					N	N	Y	N	N	N
+33	B9	false	Sample 7	EC	UNKNOWN	SYBR	None	30.428	35.271	4.275								true	0.200	true	3	15					N	N	Y	N	N	N
+34	B10	false	Sample 8	EC	UNKNOWN	SYBR	None	15.420	15.247	0.155								true	0.200	true	3	15					N	N	N	N	N	N
+35	B11	false	Sample 8	EC	UNKNOWN	SYBR	None	15.120	15.247	0.155								true	0.200	true	3	15					N	N	N	N	N	N
+36	B12	false	Sample 8	EC	UNKNOWN	SYBR	None	15.202	15.247	0.155								true	0.200	true	3	15					N	N	N	N	N	N
+37	B13	false	Sample 5	PP	UNKNOWN	SYBR	None	16.782	16.976	0.295								true	0.200	true	3	15					N	N	N	N	N	N
+38	B14	false	Sample 5	PP	UNKNOWN	SYBR	None	16.830	16.976	0.295								true	0.200	true	3	15					N	N	N	N	N	N
+39	B15	false	Sample 5	PP	UNKNOWN	SYBR	None	17.315	16.976	0.295								true	0.200	true	3	15					N	N	N	N	N	N
+40	B16	false	Sample 6	PP	UNKNOWN	SYBR	None	30.183	30.385	0.176								true	0.200	true	3	15					Y	N	N	N	N	N
+41	B17	false	Sample 6	PP	UNKNOWN	SYBR	None	30.500	30.385	0.176								true	0.200	true	3	15					Y	N	N	N	N	N
+42	B18	false	Sample 6	PP	UNKNOWN	SYBR	None	30.472	30.385	0.176								true	0.200	true	3	15					Y	N	N	N	N	N
+43	B19	false	Sample 7	PP	UNKNOWN	SYBR	None	16.301	16.271	0.083								true	0.200	true	3	15					N	N	N	N	N	N
+44	B20	false	Sample 7	PP	UNKNOWN	SYBR	None	16.334	16.271	0.083								true	0.200	true	3	15					N	N	N	N	N	N
+45	B21	false	Sample 7	PP	UNKNOWN	SYBR	None	16.177	16.271	0.083								true	0.200	true	3	15					N	N	N	N	Y	N
+46	B22	false	Sample 8	PP	UNKNOWN	SYBR	None	25.238	25.675	0.383								true	0.200	true	3	15					N	N	N	N	N	N
+47	B23	false	Sample 8	PP	UNKNOWN	SYBR	None	25.954	25.675	0.383								true	0.200	true	3	15					N	N	N	N	N	N
+48	B24	false	Sample 8	PP	UNKNOWN	SYBR	None	25.831	25.675	0.383								true	0.200	true	3	15					N	N	N	N	N	N
+49	C1	false	Sample 9	EC	UNKNOWN	SYBR	None	15.197	15.144	0.174								true	0.200	true	3	15					N	N	N	N	N	N
+50	C2	false	Sample 9	EC	UNKNOWN	SYBR	None	15.285	15.144	0.174								true	0.200	true	3	15					N	N	N	N	N	N
+51	C3	false	Sample 9	EC	UNKNOWN	SYBR	None	14.949	15.144	0.174								true	0.200	true	3	15					N	N	N	N	N	N
+52	C4	false	Sample 10	EC	UNKNOWN	SYBR	None	24.834	24.762	0.151								true	0.200	true	3	15					N	N	N	N	N	N
+53	C5	false	Sample 10	EC	UNKNOWN	SYBR	None	24.863	24.762	0.151								true	0.200	true	3	15					N	N	N	N	N	N
+54	C6	false	Sample 10	EC	UNKNOWN	SYBR	None	24.588	24.762	0.151								true	0.200	true	3	15					N	N	N	N	N	N
+55	C7	false	Sample 11	EC	UNKNOWN	SYBR	None	14.383	14.211	0.250								true	0.200	true	3	15					N	N	N	N	N	N
+56	C8	false	Sample 11	EC	UNKNOWN	SYBR	None	14.326	14.211	0.250								true	0.200	true	3	15					N	N	N	N	N	N
+57	C9	false	Sample 11	EC	UNKNOWN	SYBR	None	13.924	14.211	0.250								true	0.200	true	3	15					N	N	N	N	Y	N
+58	C10	false	Sample 12	EC	UNKNOWN	SYBR	None	32.108	32.876	3.953								true	0.200	true	3	15					Y	N	Y	N	N	N
+59	C11	false	Sample 12	EC	UNKNOWN	SYBR	None	29.364	32.876	3.953								true	0.200	true	3	15					N	N	Y	N	N	N
+60	C12	false	Sample 12	EC	UNKNOWN	SYBR	None	37.158	32.876	3.953								true	0.200	true	3	15					Y	N	Y	N	N	N
+61	C13	false	Sample 9	PP	UNKNOWN	SYBR	None	15.993	16.162	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+62	C14	false	Sample 9	PP	UNKNOWN	SYBR	None	16.229	16.162	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+63	C15	false	Sample 9	PP	UNKNOWN	SYBR	None	16.264	16.162	0.148								true	0.200	true	3	15					N	N	N	N	N	N
+64	C16	false	Sample 10	PP	UNKNOWN	SYBR	None	17.148	16.124	0.892								true	0.200	true	3	15					N	N	Y	N	N	N
+65	C17	false	Sample 10	PP	UNKNOWN	SYBR	None	15.514	16.124	0.892								true	0.200	true	3	15					N	N	Y	N	N	N
+66	C18	false	Sample 10	PP	UNKNOWN	SYBR	None	15.710	16.124	0.892								true	0.200	true	3	15					N	N	Y	N	N	N
+67	C19	false	Sample 11	PP	UNKNOWN	SYBR	None	27.380	27.441	0.369								true	0.200	true	3	15					Y	N	N	N	N	N
+68	C20	false	Sample 11	PP	UNKNOWN	SYBR	None	27.837	27.441	0.369								true	0.200	true	3	15					Y	N	N	N	N	N
+69	C21	false	Sample 11	PP	UNKNOWN	SYBR	None	27.107	27.441	0.369								true	0.200	true	3	15					Y	N	N	N	N	N
+70	C22	false	Sample 12	PP	UNKNOWN	SYBR	None	15.213	15.128	0.088								true	0.200	true	3	15					N	N	N	N	N	N
+71	C23	false	Sample 12	PP	UNKNOWN	SYBR	None	15.036	15.128	0.088								true	0.200	true	3	15					N	N	N	N	N	N
+72	C24	false	Sample 12	PP	UNKNOWN	SYBR	None	15.136	15.128	0.088								true	0.200	true	3	15					N	N	N	N	N	N
+73	D1	false	Sample 13	EC	UNKNOWN	SYBR	None	14.385	14.243	0.161								true	0.200	true	3	15					N	N	N	N	N	N
+74	D2	false	Sample 13	EC	UNKNOWN	SYBR	None	14.068	14.243	0.161								true	0.200	true	3	15					N	N	N	N	N	N
+75	D3	false	Sample 13	EC	UNKNOWN	SYBR	None	14.275	14.243	0.161								true	0.200	true	3	15					N	N	N	N	N	N
+76	D4	false	Sample 14	EC	UNKNOWN	SYBR	None	14.738	14.439	0.259								true	0.200	true	3	15					N	N	N	N	N	N
+77	D5	false	Sample 14	EC	UNKNOWN	SYBR	None	14.298	14.439	0.259								true	0.200	true	3	15					N	N	N	N	N	N
+78	D6	false	Sample 14	EC	UNKNOWN	SYBR	None	14.282	14.439	0.259								true	0.200	true	3	15					N	N	N	N	N	N
+79	D7	false	Sample 15	EC	UNKNOWN	SYBR	None	23.897	24.023	0.671								true	0.200	true	3	15					N	N	Y	N	N	N
+80	D8	false	Sample 15	EC	UNKNOWN	SYBR	None	24.748	24.023	0.671								true	0.200	true	3	15					N	N	Y	N	N	N
+81	D9	false	Sample 15	EC	UNKNOWN	SYBR	None	23.423	24.023	0.671								true	0.200	true	3	15					N	N	Y	N	N	N
+82	D10	false	Sample 16	EC	UNKNOWN	SYBR	None	13.306	13.119	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+83	D11	false	Sample 16	EC	UNKNOWN	SYBR	None	12.933	13.119	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+84	D12	false	Sample 16	EC	UNKNOWN	SYBR	None	13.118	13.119	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+85	D13	false	Sample 13	PP	UNKNOWN	SYBR	None	23.808	24.180	0.322								true	0.200	true	3	15					N	N	N	N	N	N
+86	D14	false	Sample 13	PP	UNKNOWN	SYBR	None	24.346	24.180	0.322								true	0.200	true	3	15					N	N	N	N	N	N
+87	D15	false	Sample 13	PP	UNKNOWN	SYBR	None	24.385	24.180	0.322								true	0.200	true	3	15					N	N	N	N	N	N
+88	D16	false	Sample 14	PP	UNKNOWN	SYBR	None	15.007	15.119	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+89	D17	false	Sample 14	PP	UNKNOWN	SYBR	None	15.049	15.119	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+90	D18	false	Sample 14	PP	UNKNOWN	SYBR	None	15.300	15.119	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+91	D19	false	Sample 15	PP	UNKNOWN	SYBR	None	14.735	14.763	0.063								true	0.200	true	3	15					N	N	N	N	N	N
+92	D20	false	Sample 15	PP	UNKNOWN	SYBR	None	14.836	14.763	0.063								true	0.200	true	3	15					N	N	N	N	N	N
+93	D21	false	Sample 15	PP	UNKNOWN	SYBR	None	14.720	14.763	0.063								true	0.200	true	3	15					N	N	N	N	N	N
+94	D22	false	Sample 16	PP	UNKNOWN	SYBR	None	29.329	27.338	2.217								true	0.200	true	3	15					Y	N	Y	N	N	N
+95	D23	false	Sample 16	PP	UNKNOWN	SYBR	None	24.949	27.338	2.217								true	0.200	true	3	15					N	N	Y	N	N	N
+96	D24	false	Sample 16	PP	UNKNOWN	SYBR	None	27.737	27.338	2.217								true	0.200	true	3	15					Y	N	Y	N	N	N
+97	E1	false	Sample 17	EC	UNKNOWN	SYBR	None	35.148	36.768	2.201								true	0.200	true	3	15					Y	N	Y	N	N	N
+98	E2	false	Sample 17	EC	UNKNOWN	SYBR	None	35.882	36.768	2.201								true	0.200	true	3	15					N	N	Y	N	N	N
+99	E3	false	Sample 17	EC	UNKNOWN	SYBR	None	39.274	36.768	2.201								true	0.200	true	3	15					N	N	Y	N	N	N
+100	E4	false	Sample 18	EC	UNKNOWN	SYBR	None	12.807	12.797	0.126								true	0.200	true	3	15					N	N	N	N	N	N
+101	E5	false	Sample 18	EC	UNKNOWN	SYBR	None	12.919	12.797	0.126								true	0.200	true	3	15					N	N	N	N	N	N
+102	E6	false	Sample 18	EC	UNKNOWN	SYBR	None	12.667	12.797	0.126								true	0.200	true	3	15					N	N	N	N	N	N
+103	E7	false	Sample 19	EC	UNKNOWN	SYBR	None	13.966	13.855	0.143								true	0.200	true	3	15					N	N	N	N	N	N
+104	E8	false	Sample 19	EC	UNKNOWN	SYBR	None	13.905	13.855	0.143								true	0.200	true	3	15					N	N	N	N	N	N
+105	E9	false	Sample 19	EC	UNKNOWN	SYBR	None	13.694	13.855	0.143								true	0.200	true	3	15					N	N	N	N	N	N
+106	E10	false	Sample 20	EC	UNKNOWN	SYBR	None	21.633	21.811	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+107	E11	false	Sample 20	EC	UNKNOWN	SYBR	None	21.707	21.811	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+108	E12	false	Sample 20	EC	UNKNOWN	SYBR	None	22.092	21.811	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+109	E13	false	Sample 17	PP	UNKNOWN	SYBR	None	14.059	13.959	0.160								true	0.200	true	3	15					N	N	N	N	N	N
+110	E14	false	Sample 17	PP	UNKNOWN	SYBR	None	14.043	13.959	0.160								true	0.200	true	3	15					N	N	N	N	N	N
+111	E15	false	Sample 17	PP	UNKNOWN	SYBR	None	13.774	13.959	0.160								true	0.200	true	3	15					N	N	N	N	N	N
+112	E16	false	Sample 18	PP	UNKNOWN	SYBR	None	31.073	25.800	4.567								true	0.200	true	3	15					Y	N	Y	N	N	Y
+113	E17	false	Sample 18	PP	UNKNOWN	SYBR	None	23.191	25.800	4.567								true	0.200	true	3	15					N	N	Y	N	N	N
+114	E18	false	Sample 18	PP	UNKNOWN	SYBR	None	23.136	25.800	4.567								true	0.200	true	3	15					N	N	Y	N	N	N
+115	E19	false	Sample 19	PP	UNKNOWN	SYBR	None	15.625	15.888	0.440								true	0.200	true	3	15					N	N	N	N	N	N
+116	E20	false	Sample 19	PP	UNKNOWN	SYBR	None	16.396	15.888	0.440								true	0.200	true	3	15					N	N	N	N	N	Y
+117	E21	false	Sample 19	PP	UNKNOWN	SYBR	None	15.643	15.888	0.440								true	0.200	true	3	15					N	N	N	N	N	N
+118	E22	false	Sample 20	PP	UNKNOWN	SYBR	None	14.637	14.636	0.125								true	0.200	true	3	15					N	N	N	N	N	N
+119	E23	false	Sample 20	PP	UNKNOWN	SYBR	None	14.511	14.636	0.125								true	0.200	true	3	15					N	N	N	N	N	N
+120	E24	false	Sample 20	PP	UNKNOWN	SYBR	None	14.761	14.636	0.125								true	0.200	true	3	15					N	N	N	N	N	N
+121	F1	false	Sample 21	EC	UNKNOWN	SYBR	None	11.805	11.991	0.194								true	0.200	true	3	15					N	N	N	N	N	N
+122	F2	false	Sample 21	EC	UNKNOWN	SYBR	None	12.192	11.991	0.194								true	0.200	true	3	15					N	N	N	N	N	N
+123	F3	false	Sample 21	EC	UNKNOWN	SYBR	None	11.977	11.991	0.194								true	0.200	true	3	15					N	N	N	N	N	N
+124	F4	false	Sample 22	EC	UNKNOWN	SYBR	None	31.202	32.473	1.213								true	0.200	true	3	15					N	N	Y	N	N	N
+125	F5	false	Sample 22	EC	UNKNOWN	SYBR	None	32.596	32.473	1.213								true	0.200	true	3	15					Y	N	Y	N	N	N
+126	F6	false	Sample 22	EC	UNKNOWN	SYBR	None	33.620	32.473	1.213								true	0.200	true	3	15					Y	N	Y	N	N	N
+127	F7	false	Sample 23	EC	UNKNOWN	SYBR	None	12.066	12.025	0.043								true	0.200	true	3	15					N	N	N	N	N	N
+128	F8	false	Sample 23	EC	UNKNOWN	SYBR	None	12.029	12.025	0.043								true	0.200	true	3	15					N	N	N	N	N	N
+129	F9	false	Sample 23	EC	UNKNOWN	SYBR	None	11.980	12.025	0.043								true	0.200	true	3	15					N	N	N	N	N	N
+130	F10	false	Sample 24	EC	UNKNOWN	SYBR	None	11.863	11.793	0.087								true	0.200	true	3	15					N	N	N	N	N	N
+131	F11	false	Sample 24	EC	UNKNOWN	SYBR	None	11.696	11.793	0.087								true	0.200	true	3	15					N	N	N	N	N	N
+132	F12	false	Sample 24	EC	UNKNOWN	SYBR	None	11.820	11.793	0.087								true	0.200	true	3	15					N	N	N	N	N	N
+133	F13	false	Sample 21	PP	UNKNOWN	SYBR	None	27.271	27.029	0.362								true	0.200	true	3	15					Y	N	N	N	N	N
+134	F14	false	Sample 21	PP	UNKNOWN	SYBR	None	27.203	27.029	0.362								true	0.200	true	3	15					Y	N	N	N	N	N
+135	F15	false	Sample 21	PP	UNKNOWN	SYBR	None	26.613	27.029	0.362								true	0.200	true	3	15					Y	N	N	N	N	N
+136	F16	false	Sample 22	PP	UNKNOWN	SYBR	None	11.987	12.010	0.129								true	0.200	true	3	15					N	N	N	N	N	N
+137	F17	false	Sample 22	PP	UNKNOWN	SYBR	None	12.150	12.010	0.129								true	0.200	true	3	15					N	N	N	N	N	N
+138	F18	false	Sample 22	PP	UNKNOWN	SYBR	None	11.894	12.010	0.129								true	0.200	true	3	15					N	N	N	N	N	N
+139	F19	false	Sample 23	PP	UNKNOWN	SYBR	None	19.956	20.861	0.990								true	0.200	true	3	15					N	N	Y	N	Y	N
+140	F20	false	Sample 23	PP	UNKNOWN	SYBR	None	20.708	20.861	0.990								true	0.200	true	3	15					N	N	Y	N	N	N
+141	F21	false	Sample 23	PP	UNKNOWN	SYBR	None	21.918	20.861	0.990								true	0.200	true	3	15					N	N	Y	N	N	N
+142	F22	false	Sample 24	PP	UNKNOWN	SYBR	None	13.590	13.237	0.419								true	0.200	true	3	15					N	N	N	N	N	N
+143	F23	false	Sample 24	PP	UNKNOWN	SYBR	None	13.347	13.237	0.419								true	0.200	true	3	15					N	N	N	N	N	N
+144	F24	false	Sample 24	PP	UNKNOWN	SYBR	None	12.774	13.237	0.419								true	0.200	true	3	15					N	N	N	N	N	N
+145	G1	false	Sample 25	EC	UNKNOWN	SYBR	None	20.487	20.128	0.315								true	0.200	true	3	15					N	N	N	N	N	N
+146	G2	false	Sample 25	EC	UNKNOWN	SYBR	None	19.897	20.128	0.315								true	0.200	true	3	15					N	N	N	N	N	N
+147	G3	false	Sample 25	EC	UNKNOWN	SYBR	None	20.001	20.128	0.315								true	0.200	true	3	15					N	N	N	N	N	N
+148	G4	false	Sample 26	EC	UNKNOWN	SYBR	None	12.805	12.533	0.240								true	0.200	true	3	15					N	N	N	N	N	N
+149	G5	false	Sample 26	EC	UNKNOWN	SYBR	None	12.349	12.533	0.240								true	0.200	true	3	15					N	N	N	N	N	N
+150	G6	false	Sample 26	EC	UNKNOWN	SYBR	None	12.445	12.533	0.240								true	0.200	true	3	15					N	N	N	N	N	N
+151	G7	false	Sample 27	EC	UNKNOWN	SYBR	None	32.547	31.345	2.263								true	0.200	true	3	15					N	N	Y	N	N	N
+152	G8	false	Sample 27	EC	UNKNOWN	SYBR	None	28.735	31.345	2.263								true	0.200	true	3	15					N	N	Y	N	N	N
+153	G9	false	Sample 27	EC	UNKNOWN	SYBR	None	32.753	31.345	2.263								true	0.200	true	3	15					N	N	Y	N	N	N
+154	G10	false	Sample 28	EC	UNKNOWN	SYBR	None	12.582	12.714	0.239								true	0.200	true	3	15					N	N	N	N	Y	N
+155	G11	false	Sample 28	EC	UNKNOWN	SYBR	None	12.571	12.714	0.239								true	0.200	true	3	15					N	N	N	N	N	N
+156	G12	false	Sample 28	EC	UNKNOWN	SYBR	None	12.990	12.714	0.239								true	0.200	true	3	15					N	N	N	N	N	Y
+157	G13	false	Sample 25	PP	UNKNOWN	SYBR	None	12.273	12.083	0.227								true	0.200	true	3	15					N	N	N	N	N	N
+158	G14	false	Sample 25	PP	UNKNOWN	SYBR	None	12.143	12.083	0.227								true	0.200	true	3	15					N	N	N	N	N	N
+159	G15	false	Sample 25	PP	UNKNOWN	SYBR	None	11.832	12.083	0.227								true	0.200	true	3	15					N	N	N	N	N	N
+160	G16	false	Sample 26	PP	UNKNOWN	SYBR	None	29.812	29.378	0.992								true	0.200	true	3	15					Y	N	Y	N	N	N
+161	G17	false	Sample 26	PP	UNKNOWN	SYBR	None	30.079	29.378	0.992								true	0.200	true	3	15					Y	N	Y	N	N	N
+162	G18	false	Sample 26	PP	UNKNOWN	SYBR	None	28.243	29.378	0.992								true	0.200	true	3	15					Y	N	Y	N	N	N
+163	G19	false	Sample 27	PP	UNKNOWN	SYBR	None	11.273	11.439	0.144								true	0.200	true	3	15					N	N	N	N	N	N
+164	G20	false	Sample 27	PP	UNKNOWN	SYBR	None	11.516	11.439	0.144								true	0.200	true	3	15					N	N	N	N	N	N
+165	G21	false	Sample 27	PP	UNKNOWN	SYBR	None	11.527	11.439	0.144								true	0.200	true	3	15					N	N	N	N	N	N
+166	G22	false	Sample 28	PP	UNKNOWN	SYBR	None	16.044	15.522	0.481								true	0.200	true	3	15					N	N	N	N	N	N
+167	G23	false	Sample 28	PP	UNKNOWN	SYBR	None	15.426	15.522	0.481								true	0.200	true	3	15					N	N	N	N	N	N
+168	G24	false	Sample 28	PP	UNKNOWN	SYBR	None	15.096	15.522	0.481								true	0.200	true	3	15					N	N	N	N	N	N
+169	H1	false	Sample 29	EC	UNKNOWN	SYBR	None	14.374	14.420	0.041								true	0.200	true	3	15					N	N	N	N	N	N
+170	H2	false	Sample 29	EC	UNKNOWN	SYBR	None	14.452	14.420	0.041								true	0.200	true	3	15					N	N	N	N	N	N
+171	H3	false	Sample 29	EC	UNKNOWN	SYBR	None	14.434	14.420	0.041								true	0.200	true	3	15					N	N	N	N	N	N
+172	H4	false	Sample 30	EC	UNKNOWN	SYBR	None	16.827	16.674	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+173	H5	false	Sample 30	EC	UNKNOWN	SYBR	None	16.510	16.674	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+174	H6	false	Sample 30	EC	UNKNOWN	SYBR	None	16.685	16.674	0.159								true	0.200	true	3	15					N	N	N	N	N	N
+175	H7	false	Sample 31	EC	UNKNOWN	SYBR	None	15.776	15.656	0.168								true	0.200	true	3	15					N	N	N	N	N	N
+176	H8	false	Sample 31	EC	UNKNOWN	SYBR	None	15.464	15.656	0.168								true	0.200	true	3	15					N	N	N	N	N	N
+177	H9	false	Sample 31	EC	UNKNOWN	SYBR	None	15.728	15.656	0.168								true	0.200	true	3	15					N	N	N	N	N	N
+178	H10	false	Sample 32	EC	UNKNOWN	SYBR	None	35.649	33.224	2.281								true	0.200	true	3	15					N	N	Y	N	N	N
+179	H11	false	Sample 32	EC	UNKNOWN	SYBR	None	32.900	33.224	2.281								true	0.200	true	3	15					Y	N	Y	N	N	N
+180	H12	false	Sample 32	EC	UNKNOWN	SYBR	None	31.122	33.224	2.281								true	0.200	true	3	15					N	N	Y	N	N	N
+181	H13	false	Sample 29	PP	UNKNOWN	SYBR	None	12.502	12.330	0.291								true	0.200	true	3	15					N	N	N	N	N	N
+182	H14	false	Sample 29	PP	UNKNOWN	SYBR	None	11.993	12.330	0.291								true	0.200	true	3	15					N	N	N	N	N	Y
+183	H15	false	Sample 29	PP	UNKNOWN	SYBR	None	12.494	12.330	0.291								true	0.200	true	3	15					N	N	N	N	N	N
+184	H16	false	Sample 30	PP	UNKNOWN	SYBR	None	11.458	11.514	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+185	H17	false	Sample 30	PP	UNKNOWN	SYBR	None	11.301	11.514	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+186	H18	false	Sample 30	PP	UNKNOWN	SYBR	None	11.784	11.514	0.246								true	0.200	true	3	15					N	N	N	N	N	N
+187	H19	false	Sample 31	PP	UNKNOWN	SYBR	None	27.946	28.223	0.343								true	0.200	true	3	15					Y	N	N	N	N	N
+188	H20	false	Sample 31	PP	UNKNOWN	SYBR	None	28.116	28.223	0.343								true	0.200	true	3	15					Y	N	N	N	N	N
+189	H21	false	Sample 31	PP	UNKNOWN	SYBR	None	28.606	28.223	0.343								true	0.200	true	3	15					Y	N	N	N	N	N
+190	H22	false	Sample 32	PP	UNKNOWN	SYBR	None	12.360	12.474	0.189								true	0.200	true	3	15					N	N	N	N	N	N
+191	H23	false	Sample 32	PP	UNKNOWN	SYBR	None	12.370	12.474	0.189								true	0.200	true	3	15					N	N	N	N	N	N
+192	H24	false	Sample 32	PP	UNKNOWN	SYBR	None	12.693	12.474	0.189								true	0.200	true	3	15					N	N	N	N	N	N
+193	I1	false	Sample 33	EC	UNKNOWN	SYBR	None	16.239	16.078	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+194	I2	false	Sample 33	EC	UNKNOWN	SYBR	None	16.123	16.078	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+195	I3	false	Sample 33	EC	UNKNOWN	SYBR	None	15.874	16.078	0.187								true	0.200	true	3	15					N	N	N	N	N	N
+196	I4	false	Sample 34	EC	UNKNOWN	SYBR	None	17.163	17.102	0.086								true	0.200	true	3	15					N	N	N	N	N	N
+197	I5	false	Sample 34	EC	UNKNOWN	SYBR	None	17.041	17.102	0.086								true	0.200	true	3	15					N	N	N	N	N	N
+198	I6	false	Sample 34	EC	UNKNOWN	SYBR	None	17.133	17.473	0.253								true	0.200	true	3	15					N	N	N	N	N	N
+199	I7	false	Sample 35	EC	UNKNOWN	SYBR	None	17.612	17.473	0.253								true	0.200	true	3	15					N	N	N	N	N	N
+200	I8	false	Sample 35	EC	UNKNOWN	SYBR	None	17.708	17.473	0.253								true	0.200	true	3	15					N	N	N	N	N	N
+201	I9	false	Sample 35	EC	UNKNOWN	SYBR	None	17.439	17.473	0.253								true	0.200	true	3	15					N	N	N	N	N	N
+205	I13	false	Sample 33	PP	UNKNOWN	SYBR	None	13.252	13.264	0.114								true	0.200	true	3	15					N	N	N	N	N	N
+206	I14	false	Sample 33	PP	UNKNOWN	SYBR	None	13.384	13.264	0.114								true	0.200	true	3	15					N	N	N	N	N	N
+207	I15	false	Sample 33	PP	UNKNOWN	SYBR	None	13.157	13.264	0.114								true	0.200	true	3	15					N	N	N	N	N	N
+208	I16	false	Sample 34	PP	UNKNOWN	SYBR	None	12.017	12.086	0.095								true	0.200	true	3	15					N	N	N	N	N	N
+209	I17	false	Sample 34	PP	UNKNOWN	SYBR	None	12.047	12.086	0.095								true	0.200	true	3	15					N	N	N	N	N	N
+210	I18	false	Sample 34	PP	UNKNOWN	SYBR	None	12.195	12.086	0.095								true	0.200	true	3	15					N	N	N	N	N	N
+211	I19	false	Sample 35	PP	UNKNOWN	SYBR	None	12.194	12.412	0.276								true	0.200	true	3	15					N	N	N	N	N	N
+212	I20	false	Sample 35	PP	UNKNOWN	SYBR	None	12.319	12.412	0.276								true	0.200	true	3	15					N	N	N	N	N	N
+213	I21	false	Sample 35	PP	UNKNOWN	SYBR	None	12.722	12.412	0.276								true	0.200	true	3	15					N	N	N	N	N	N
