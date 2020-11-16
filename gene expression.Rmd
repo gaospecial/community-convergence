@@ -24,16 +24,17 @@ library(clusterProfiler)
 theme_set(theme_bw())
 
 # 导入预定义函数
-source("D:/community_assemble/RNA-seq/functions/functions.R")
-source("D:/community_assemble/RNA-seq/functions/ggplot_smooth_func.R")
+source("./functions/functions.R")
+source("./functions/ggplot_smooth_func.R")
  
 ```
 
 #源文件导出和处理
+
 ```{r}
 ## 需要删除表格后面的信息
-result_file <- list.files(path="D:/community_assemble/RNA-seq/data/qPCR_growth_curve", pattern = "Results_ViiA7_export.txt",full.names = T)
-meta_file <- list.files(path="D:/community_assemble/RNA-seq/data/qPCR_growth_curve", ,pattern = "meta.txt",full.names = T)
+result_file <- list.files(path="./data/qPCR_growth_curve", pattern = "Results_ViiA7_export.txt",full.names = T)
+meta_file <- list.files(path="./data/qPCR_growth_curve", pattern = "meta.txt",full.names = T)
 ## 读取qPCR Results数据
 result1 <- read_delim(result_file[[1]],"\t",skip=43,na="Undetermined")
 result2 <- read_delim(result_file[[2]],"\t",skip=43,na="Undetermined")
@@ -106,13 +107,11 @@ ggsave("figure 1.tiff",path="figures")
 
 ```
 
-
-
 ## 对24h时的最终状态进行统计分析
-首先，分析24h时共培养与单独培养条件下 E. coli 的生物量（A）。 其次，分析24h时共培养与单独培养条件下 P. putida 的生物量（B）。
-差异在统计学上是显著的，不过具体数值却比较接近。
 
-```{r fig.width=12}  
+首先，分析24h时共培养与单独培养条件下 E. coli 的生物量（A）。 其次，分析24h时共培养与单独培养条件下 P. putida 的生物量（B）。 差异在统计学上是显著的，不过具体数值却比较接近。
+
+```{r fig.width=12}
 organism <- c("EC","PP")
 organsim_fullname <- c("EC"="E. coli","PP"="P. putida")
 ref_group <- c("all","none")
@@ -137,7 +136,7 @@ plot_grid(plotlist = plots,ncol=2,labels = "AUTO")
 
 ```
 
-```{r fig.width=12} 
+```{r fig.width=12}
 results_final <- tidyr::unite(results, species_time, species,time,remove = FALSE)
 results_final$species_time <- as.factor(results_final$species_time)
 results_final$species <- as.factor(results_final$species)
@@ -169,9 +168,8 @@ ggsave("figure s1.tiff",path="figures")
 
 ```
 
-
-
 ## 计算共培养体系中 ratio 的实时变化
+
 ```{r}
 results %>% 
   filter(condition %in% c("less","equal","more"), species=="EC") %>% 
@@ -194,42 +192,51 @@ aov <-  aov(ratio~time,ratio1)
 TukeyHSD(aov)
 
 ```
+
 ```{r}
 shapiro.test(x=residuals(aov))
 
 ```
+
 ```{r}
 (p1 <- pairwise.wilcox.test(ratio1$ratio,ratio1$time,p.adjust.method = "BH"))
 
 ```
+
 ```{r}
 ratio2 <- ratio %>% filter(condition=="equal") %>% mutate(time=factor(time))
 aov <-  aov(ratio~time,ratio2)
 TukeyHSD(aov)
 
 ```
+
 ```{r}
 shapiro.test(x=residuals(aov))
 
 ```
+
 ```{r}
 (p2 <- pairwise.wilcox.test(ratio2$ratio,ratio2$time,p.adjust.method = "BH"))
 
 ```
+
 ```{r}
 ratio3 <- ratio %>% filter(condition=="less") %>% mutate(time=factor(time))
 aov <-  aov(ratio~time,ratio3)
 TukeyHSD(aov)
 
 ```
+
 ```{r}
 shapiro.test(x=residuals(aov))
 
 ```
+
 ```{r}
 (p3 <- pairwise.wilcox.test(ratio3$ratio,ratio3$time,p.adjust.method = "BH"))
 
 ```
+
 ```{r}
 #plots <- lapply(c(p1,p2,p3), function(x) corrplot(x$p.value,is.corr = F,type="lower",addCoef.col = "grey",cl.lim = c(0,1)))
 par(mfrow=c(1,3))
@@ -241,9 +248,7 @@ export::graph2ppt(file="figures.pptx",append=TRUE)
 
 从上图可以看出，在0-4h期间，ratio之间有时在统计学上并没有显著差异。
 
-在24h的时候，less和equal组ratio间没有显著差异。
-而more和equal之间的差异虽然在统计学上显著，但相对于前期的巨大差异，仍然可以认为是接近的。
-
+在24h的时候，less和equal组ratio间没有显著差异。 而more和equal之间的差异虽然在统计学上显著，但相对于前期的巨大差异，仍然可以认为是接近的。
 
 ```{r fig.width=6,fig.asp=0.618}
 ratio.sum <- ratio %>% 
@@ -290,19 +295,21 @@ export::graph2ppt(file="figures.pptx",append=TRUE)
 # export::graph2ppt()
 ```
 
-
 ## Gene expression analysis
+
 # raw data
+
 每个文库测序原始数据量，短序列的比对率。
+
 ```{r}
-tableS1 <- read.xlsx("D:/community_assemble/RNA-seq/data/tableS1.xlsx")
+tableS1 <- read.xlsx("./data/tableS1.xlsx")
 summary(tableS1)
 ```
 
 在每个样本中，Aligned reads两个物种的相对比例。
 
 ```{r fig.asp=1.5,width=4.5}
-ht_counts <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/ht_counts.rds")
+ht_counts <- readRDS(file = "./data/rna/ht_counts.rds")
 ht_counts$group <- factor(ht_counts$group,levels = c("none_0h","none_4h","none_8h","none_24h","less_0h","less_4h","less_8h","less_24h","equal_0h","equal_4h","equal_8h","equal_24h","more_0h","more_4h","more_8h","more_24h","all_0h","all_4h","all_8h","all_24h"),labels = c("P. putida_0h","P. putida_4h","P. putida_8h","P. putida_24h","1:1000_0h","1:1000_4h","1:1000_8h","1:1000_24h","1:1_0h","1:1_4h","1:1_8h","1:1_24h","1000:1_0h","1000:1_4h","1000:1_8h","1000:1_24h","E. coli_0h","E. coli_4h","E. coli_8h","E. coli_24h"))
 ht_counts_total <- ht_counts %>% group_by(sample_id, group, organism) %>%
   summarise(sum_of_reads=sum(count)) %>%
@@ -348,7 +355,6 @@ export::graph2ppt(file="figures.pptx",append=TRUE)
 
 ```
 
-
 ```{r fig.width=6, fig.asp=0.8}
 # only cocultures
 plot_grid(legend, plot_grid(plotlist = plots[5:16],labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
@@ -356,7 +362,9 @@ export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
 # Identify gene expression changes
+
 This step is a time consuming step. Use the precalculated DEG if possible.
+
 ```{r comparisons}
 comparisons.EC <- list(
   c("less_0h","all_0h"),
@@ -387,10 +395,9 @@ comparisons.PP <- list(
    c("more_24h","none_24h"))
 ```
 
-
 ```{r run_DESeq2, eval=FALSE}
-dds.EC <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/dds.EC.rds")
-dds.PP <- readRDS(file = "D:/community_assemble/RNA-seq/data/rna/dds.PP.rds")
+dds.EC <- readRDS(file = "./data/rna/dds.EC.rds")
+dds.PP <- readRDS(file = "./data/rna/dds.PP.rds")
 
 # dds.EC$group <- relevel(dds.EC$group, "all_0h")
 # dds.PP$group <- relevel(dds.PP$group, "none_0h")
@@ -430,7 +437,6 @@ list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
 
 ```
 
-
 ```{r fig.width=10,fig.asp=0.618}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   myPlotPCA(vsd) + 
@@ -450,7 +456,6 @@ ggsave("figure 3.tiff",path="figures")
 export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
 
 ```
-
 
 ```{r upset plot for EC,fig.width=5}
 library(UpSetR)   #可视化
@@ -558,8 +563,8 @@ deg_count_PP %>% abs() %>% sum()
 
 Venn Diagram
 
-“less”组*E. coli*和“more”组的*P. putida*差异表达基因随时间变化。在这两个组合中，不仅差异表达基因数目多，且其中的很大一部分都是特异性的表达。
- 
+"less"组*E. coli*和"more"组的*P. putida*差异表达基因随时间变化。在这两个组合中，不仅差异表达基因数目多，且其中的很大一部分都是特异性的表达。
+
 ```{r }
 library(ggVennDiagram)
 library(ggplot2)
@@ -592,9 +597,7 @@ plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
 ggsave("figure S9.tiff",path="figures")
 ```
 
-
 # gseKEGG 分析
-
 
 GSEA分析需要使用全谱。因此需要重新获得差异表达基因的列表。
 
@@ -667,8 +670,8 @@ gseKEGG_results.PP <- lapply(full_DEG_results.PP, function(x){
 })
 ```
 
-
 ### 计算 *P. putida* 中 GSEA GO 的结果
+
 ```{r}
 library(AnnotationHub)
 ah <- AnnotationHub()
@@ -758,7 +761,6 @@ ggsave("figure S11.tiff",path="figures")
 
 ### GSEA KEGG dotplot
 
-
 获取GSEA KEGG结果中的数据框，以便统一绘图。
 
 ```{r }
@@ -782,7 +784,6 @@ gsea_ck_df <- function(gsea_results = gsea_results){
   return(gsea_dotplot_df)
 }
 ```
-
 
 ```{r }
 # df1 是 E. coli gseKEGG 结果的数据框
@@ -853,7 +854,6 @@ ggplot(data,aes(time,Description,size=GeneRatio,color=enrichmentScore)) +
 
 ```
 
-
 *P. putida* GSEA KEGG 的结果可视化
 
 ```{r fig.width=10}
@@ -874,8 +874,7 @@ ggplot(data,aes(time,Description,size=GeneRatio,color=enrichmentScore)) +
 
 ```
 
-
-*E. coli*中全谱GSEA KEGG分析的结果。
+*E. coli* 中全谱GSEA KEGG分析的结果。
 
 ```{r,fig.width=8,fig.asp=1}
 list_of_gseKEGG_results_df <- lapply(list(df1,df2), function(x){
@@ -902,7 +901,6 @@ list_of_gseKEGG_dotplot <- lapply(list_of_gseKEGG_results_df, function(df){
 })
 ```
 
-
 ```{r,fig.width=8,fig.asp=1}
 library(grid)
 library(gtable)
@@ -922,7 +920,6 @@ ggsave("figure S12.tiff",path="figures")
 
 
 ```
-
 
 *P. putida*中全谱GSEA KEGG分析的结果。
 
@@ -972,20 +969,17 @@ plotlist <- lapply(list(d1,d2,d3), function(df){
 
 ```
 
-
 ```{r fig.width=8,fig.asp=2}
 plot_grid(plotlist = plotlist,ncol = 1)
 ggsave("figure S14.tiff",path="figures")
 
 ```
 
-
-
 不用全谱的话不科学，用全谱的话没法看。现在应该怎么办？
 
 再三权衡之下，决定对数据进行过滤，得出影响最大的那些通路。
 
-enrichmentScore是一个重要的参数，先尝试仅显示 enrichmentScore 最大和最小的几个值。
+enrichmentScore 是一个重要的参数，先尝试仅显示 enrichmentScore 最大和最小的几个值。
 
 ```{r}
 list_of_gseKEGG_dotplot <- lapply(list_of_gseKEGG_results_df, function(df){
@@ -1042,7 +1036,6 @@ enriched_genes.EC <- lapply(gseKEGG_results.EC,function(x){
 })
 ```
 
-
 ```{r fig.width=8,fig.asp=1}
 idx <- 1:4
 pathways <- unique(do.call("rbind",enriched_genes.EC[idx])$Description)
@@ -1089,7 +1082,6 @@ ggsave("figure S4.tiff",path="figures")
 
 ```
 
-
 # pathway viewer
 
 ```{r}
@@ -1106,6 +1098,3 @@ for (i in seq_along(pathway_ids.EC)){
 
 }
 ```
-
-
-
