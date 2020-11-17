@@ -3,6 +3,7 @@ title: "Transcriptomic level adaptive capacity play roles in the deterministic a
 author: "Chun-Hui Gao, Hui Cao, Peng Cai"
 date: "2020-11-16"
 output: bookdown::html_document2
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -31,15 +32,13 @@ source("./functions/ggplot_smooth_func.R")
 
 ## Growth of *E. coli* and *P. putida* in monoculture and cocultures
 
-`qPCR_data` contains the result of species-specific quantitative PCR.
-It has five columns:
+`qPCR_data` contains the result of species-specific quantitative PCR. It has five columns:
 
-- sample: Sample name
-- condition: monoculture and coculture names. The two-species coculture system has five different initial abundance, two of which were monocultures, and the other three had the initial ratio (EC/PP) of 1:1000, 1:1, 1000:1, respectively. For convenience, we named the *P. putida* monoculture, 1:1000, 1:1, 1000:1 cocultures and *E. coli* monoculture as related to the proportion of *E. coli* to five groups of “none”, “less”, “equal”, “more” and “all”, respectively. 
-- time: sample time.
-- species: species name. In cocultures, the quantity was related to two species, respectively.
-- quantity: the quantity of species, as calculated from the qPCR CT value and standard curves. 
-
+-   sample: Sample name
+-   condition: monoculture and coculture names. The two-species coculture system has five different initial abundance, two of which were monocultures, and the other three had the initial ratio (EC/PP) of 1:1000, 1:1, 1000:1, respectively. For convenience, we named the *P. putida* monoculture, 1:1000, 1:1, 1000:1 cocultures and *E. coli* monoculture as related to the proportion of *E. coli* to five groups of "none", "less", "equal", "more" and "all", respectively.
+-   time: sample time.
+-   species: species name. In cocultures, the quantity was related to two species, respectively.
+-   quantity: the quantity of species, as calculated from the qPCR CT value and standard curves.
 
 ```{r qPCR-data}
 qPCR_data <- read.csv("data/qPCR-data.csv")
@@ -51,8 +50,8 @@ head(qPCR_data)
 organism <- c("EC","PP")
 organsim_fullname <- c("EC"="E. coli","PP"="P. putida")
 ```
-Figure \@ref(fig:growth-curve) shows Growth curves of *E. coli* and *P. putida* in monoculture (A) and the “1:1000”, “1:1”, “1000:1” cocultures (B-D). The quantities were determined using species-specific qPCR as described in methods. In B-D subplots, the growth curves of monocultures were placed on the background layer (dashed lines), showing the difference between monoculture and cocultures.
 
+Figure \@ref(fig:growth-curve) shows Growth curves of *E. coli* and *P. putida* in monoculture (A) and the "1:1000", "1:1", "1000:1" cocultures (B-D). The quantities were determined using species-specific qPCR as described in methods. In B-D subplots, the growth curves of monocultures were placed on the background layer (dashed lines), showing the difference between monoculture and cocultures.
 
 ```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)"}
 
@@ -102,8 +101,7 @@ plot_grid(plotlist = growth_curves,ncol=2,labels = "AUTO")
 
 ### Comparision of coculture and monoculture quantities
 
-Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the species abundances between monoculture and three cocultures. Results for *E. coli* (A-G) and *P. putida* (H-N) were given by time, as been illustrated on the top subtitle. In x-axis, mono represents the quantity of monoculture, and “1:1000”, “1:1”, “1000:1” represent the quantity of three cocultures. The significance of p-values were showed by “\*” (p<0.05), “\*\*” (p<0.01) or “ns” (p>0.05).
-
+Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the species abundances between monoculture and three cocultures. Results for *E. coli* (A-G) and *P. putida* (H-N) were given by time, as been illustrated on the top subtitle. In x-axis, mono represents the quantity of monoculture, and "1:1000", "1:1", "1000:1" represent the quantity of three cocultures. The significance of p-values were showed by "\*" (p\<0.05), "\*\*" (p\<0.01) or "ns" (p\>0.05).
 
 ```{r monoculture-vs-coculture, fig.width=12,fig.cap="Analysis the variance of the species abundances between monoculture and three cocultures"}
 ref_group <- c("all","none")
@@ -130,7 +128,6 @@ plots <- unlist(plots,recursive = F)
 plot_grid(plotlist = plots,ncol=5,labels = "AUTO")
 
 ```
-
 
 ### Ratio (EC/PP) changes in cocultures
 
@@ -194,11 +191,11 @@ plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
 # export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
-Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)). 
+Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)).
 
 For each coculture, significance of variances between each sample were as follows:
 
-- the 1:1000 coculture
+-   the 1:1000 coculture
 
 ```{r}
 ### stats
@@ -206,21 +203,21 @@ ratio1 <- ratio %>% filter(condition=="less")
 (p1 <- pairwise.wilcox.test(ratio1$ratio,ratio1$time,p.adjust.method = "BH"))
 ```
 
-- the 1:1 coculture
+-   the 1:1 coculture
 
 ```{r}
 ratio2 <- ratio %>% filter(condition=="equal")
 (p2 <- pairwise.wilcox.test(ratio2$ratio,ratio2$time,p.adjust.method = "BH"))
 ```
 
-- and the 1000:1 coculture
+-   and the 1000:1 coculture
 
 ```{r}
 ratio3 <- ratio %>% filter(condition=="more")
 (p3 <- pairwise.wilcox.test(ratio3$ratio,ratio3$time,p.adjust.method = "BH"))
 ```
 
-Figure \@ref(fig:comparison-by-time) shows P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures. Circles showed the adjusted p-value for the comparison of the EC/PP ratios between two samples, which were indicated on the top and left (large circle mean large p-value). On this plot, a cross mark was given if the p-value is non-significant (P > 0.05).
+Figure \@ref(fig:comparison-by-time) shows P-values of pairwise comparison of real-time EC/PP ratios in the "1:1000" (A), "1:1" (B) and "1000:1" (C) cocultures. Circles showed the adjusted p-value for the comparison of the EC/PP ratios between two samples, which were indicated on the top and left (large circle mean large p-value). On this plot, a cross mark was given if the p-value is non-significant (P \> 0.05).
 
 ```{r comparison-by-time, fig.cap="P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures.", fig.asp=0.4}
 par(mfrow=c(1,3))
@@ -245,24 +242,24 @@ plots <- lapply(seq_along(pvalues), function(i){
 
 ```
 
-
-
 ## Gene expression analysis
 
-# raw data
+To reveal the mechanism of community assembly in cocultures, we investigated the transcriptomic changes in cocultures using RNA-seq analysis.
 
-每个文库测序原始数据量，短序列的比对率。
+Totally 60 samples were sequences. After sequencing quality control, each sample has 2.6 -- 3.9 M paired reads, and 3.9 -- 5.9 G base pairs, having an overall coverage of 300 X at least. After filtration, high-quality reads were aligned against the P. putida (<https://www.ncbi.nlm.nih.gov/genome/?term=pseudomonas+putida+kt2440>) and E.coli reference genome (<https://www.ncbi.nlm.nih.gov/genome/?term=Escherichia+coli+K-12>) using hisat2 and gene expression changes were quantified using DESeq2 software [@herbergDiagnosticTestAccuracy2016; @loveModeratedEstimationFold2014]. While aligning to reference genomes, the overall aligned rates are ranging from 97.23% to 98.43%.
 
 ```{r}
 tableS1 <- read.xlsx("./data/tableS1.xlsx")
 summary(tableS1)
 ```
 
-在每个样本中，Aligned reads两个物种的相对比例。
+Figure \@ref(fig:reads-count) shows the reads count of *E. coli* and *P. putida* in each RNA-seq library. Samples were taken with each condition at indicated times (at 0, 4, 8 and 24h). (A-D) *P. putida* monoculture samples; (E-H) *E. coli* and *P. putida* “1:1000” coculture; (I-L) the “1:1” coculture; (M-P) the “1000:1” coculture; and (Q-T) the *E. coli* monoculture samples. Each sample has three replicates. Only aligned reads to either *E. coli* or *P. putida* genome were used in this calculation. Plots showed the proportion of reads which have aligned to corresponding genome by different colors, as indicated on the top.
 
-```{r fig.asp=1.5,width=4.5}
-ht_counts <- readRDS(file = "./data/rna/ht_counts.rds")
-ht_counts$group <- factor(ht_counts$group,levels = c("none_0h","none_4h","none_8h","none_24h","less_0h","less_4h","less_8h","less_24h","equal_0h","equal_4h","equal_8h","equal_24h","more_0h","more_4h","more_8h","more_24h","all_0h","all_4h","all_8h","all_24h"),labels = c("P. putida_0h","P. putida_4h","P. putida_8h","P. putida_24h","1:1000_0h","1:1000_4h","1:1000_8h","1:1000_24h","1:1_0h","1:1_4h","1:1_8h","1:1_24h","1000:1_0h","1000:1_4h","1000:1_8h","1000:1_24h","E. coli_0h","E. coli_4h","E. coli_8h","E. coli_24h"))
+```{r reads-count, fig.asp=1.5,width=4.5, fig.cap="Reads count of *E. coli* and *P. putida* in each RNA-seq library"}
+ht_counts <- readRDS(file = "./data/ht_counts.rds")
+ht_counts$group <- factor(ht_counts$group,
+                          levels = c("none_0h","none_4h","none_8h","none_24h","less_0h","less_4h","less_8h","less_24h","equal_0h","equal_4h","equal_8h","equal_24h","more_0h","more_4h","more_8h","more_24h","all_0h","all_4h","all_8h","all_24h"),
+                          labels = c("P. putida_0h","P. putida_4h","P. putida_8h","P. putida_24h","1:1000_0h","1:1000_4h","1:1000_8h","1:1000_24h","1:1_0h","1:1_4h","1:1_8h","1:1_24h","1000:1_0h","1000:1_4h","1000:1_8h","1000:1_24h","E. coli_0h","E. coli_4h","E. coli_8h","E. coli_24h"))
 ht_counts_total <- ht_counts %>% group_by(sample_id, group, organism) %>%
   summarise(sum_of_reads=sum(count)) %>%
   group_by(sample_id) %>% 
@@ -282,88 +279,15 @@ plots <- lapply(1:length(samples),function(i){
           axis.title = element_blank())
 })
 legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
-for (i in c(1,5,9,13,17)){
-  plots[[i]] <- plots[[i]] + ylab("Proportion") + theme(axis.text.y = element_text())
-}
-for (i in 17:20){
-  plots[[i]] <- plots[[i]] + xlab("No. of replicates")
-}
 plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
-ggsave("figure S3.tiff",path="figures")
-export::graph2ppt(file="figures.pptx",append=TRUE)
+# ggsave("figure S3.tiff",path="figures")
+# export::graph2ppt(file="figures.pptx",append=TRUE)
 
-# # following is the faceted plot (inconvinent to add subplot labels)
-# ggplot(ht_counts_total,aes(x=sample_id, y=proportion,fill=organism)) + 
-#   geom_bar(stat = "identity",position = "stack") + 
-#   facet_wrap(~group,scale="free_x",ncol=8) +
-#   scale_y_continuous(labels = function(l)paste(format(l*100,digits = 2),"%",sep="")) +
-#   scale_x_discrete(labels=c("1","2","3")) +
-#   scale_fill_discrete(name="Organism: ",labels=c("EC"="E. coli","PP"="P. putida")) +
-#   labs(x="No. of replicates",y="Proportion",
-#        title=expression(paste("Reads count of ", italic("E. coli")," and ", italic("P. putida"), " in each RNA-seq library"))) +
-#   theme(legend.text = element_text(face = "italic"),
-#         legend.position = c(0.7,0.1),
-#         legend.direction = "horizontal")
-
-```
-
-```{r fig.width=6, fig.asp=0.8}
-# only cocultures
-plot_grid(legend, plot_grid(plotlist = plots[5:16],labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
-export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
 # Identify gene expression changes
 
 This step is a time consuming step. Use the precalculated DEG if possible.
-
-```{r comparisons}
-comparisons.EC <- list(
-  c("less_0h","all_0h"),
-   c("less_4h","all_4h"),
-   c("less_8h","all_8h"),
-   c("less_24h","all_24h"),
-   c("equal_0h","all_0h"),
-   c("equal_4h","all_4h"),
-   c("equal_8h","all_8h"),
-   c("equal_24h","all_24h"),
-   c("more_0h","all_0h"),
-   c("more_4h","all_4h"),
-   c("more_8h","all_8h"),
-   c("more_24h","all_24h"))
-
-comparisons.PP <- list(
-   c("less_0h","none_0h"),
-   c("less_4h","none_4h"),
-   c("less_8h","none_8h"),
-   c("less_24h","none_24h"),
-   c("equal_0h","none_0h"),
-   c("equal_4h","none_4h"),
-   c("equal_8h","none_8h"),
-   c("equal_24h","none_24h"),
-   c("more_0h","none_0h"),
-   c("more_4h","none_4h"),
-   c("more_8h","none_8h"),
-   c("more_24h","none_24h"))
-```
-
-```{r run_DESeq2, eval=FALSE}
-dds.EC <- readRDS(file = "./data/rna/dds.EC.rds")
-dds.PP <- readRDS(file = "./data/rna/dds.PP.rds")
-
-# dds.EC$group <- relevel(dds.EC$group, "all_0h")
-# dds.PP$group <- relevel(dds.PP$group, "none_0h")
-
-dds.EC <- DESeq(dds.EC)  # this step is time consuming  标准化
-dds.PP <- DESeq(dds.PP)
-# dds.EC <- lfcShrink() )  与每个时间点的单菌比较，找差异基因
-DEG_results.EC <- myDEG_Results(dds=dds.EC, comparison = comparisons.EC)
-DEG_results.PP <- myDEG_Results(dds=dds.PP, comparison = comparisons.PP)
-saveRDS(dds.EC,"data/dds.EC.2.rds")
-saveRDS(dds.PP,"data/dds.PP.2.rds")
-saveRDS(DEG_results.EC,"data/DEG_results.EC.rds")
-saveRDS(DEG_results.PP,"data/DEG_results.PP.rds")
-```
 
 load precalculated DEG results.
 
@@ -389,129 +313,71 @@ list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
 
 ```
 
-```{r fig.width=10,fig.asp=0.618}
+```{r RNA-seq-PCA, fig.width=10,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   myPlotPCA(vsd) + 
     facet_wrap(~time,ncol=4) +
     directlabels::geom_dl(aes(label=ratio0),method = "smart.grid",size=2) +  #文本代替标签 位置标注的不好,改size没用
     scale_color_manual(limits=c("E. coli","1:1000","1:1","1000:1","P. putida"),
-                       
-                       values = brewer.pal(9,"YlOrRd")[5:9],
-                       name="initial ratio\n(EC/PP)") +
-    theme(legend.position = "P. putida")
+                       values = brewer.pal(5,"Dark2"))
   })
 
 legend <- get_legend(list_of_PCA_plot[[1]] + theme(legend.position = "right"))
 
 plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
-ggsave("figure 3.tiff",path="figures")
-export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
+# ggsave("figure 3.tiff",path="figures")
+# export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
 
 ```
+### Count of DEGs
 
-```{r upset plot for EC,fig.width=5}
-library(UpSetR)   #可视化
-EC_deg <- lapply(DEG_results.EC, function(x) x$gene)
-names(EC_deg) <- sapply(comparisons.EC, function(x)x[-2])
+Figure \@ref(fig:count-of-deg) shows the Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
 
-upset_deg_EC <- upset(fromList(EC_deg),
-                      sets=rev(names(EC_deg)[lapply(EC_deg, length)>0]),
-                      nintersects = 10,
-                      keep.order = T,
-                      mb.ratio = c(0.55, 0.45),
-                      order.by = "freq")
-
-
-
-```
-
-```{r upset plot for PP,fig.width=5,fig.asp=0.55}
-library(UpSetR)
-
-PP_deg <- lapply(DEG_results.PP, function(x) x$gene)
-names(PP_deg) <- sapply(comparisons.PP, function(x)x[-2])
-pp_selected_sets <- rev(c("less_24h","equal_4h","equal_24h","more_4h","more_8h"))
-
-upset(fromList(PP_deg),
-      sets=rev(names(PP_deg)[lapply(PP_deg, length)>0]),
-      nintersects = 10,keep.order = T,mb.ratio = c(0.6, 0.4),order.by = "freq")
+```{r count-of-deg, fig.asp=0.618,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B)."}
+## count DEG
+deg_count <- function(data){
+  do.call("rbind",lapply(data, function(x) table(x$expression))) %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "name") %>%
+    separate(name, into = c("ratio","time"), sep = "_", extra = "drop") %>%
+    mutate(time = as.numeric(str_extract(time, "[0-9]+"))) %>%
+    pivot_longer(cols = c("dn","up"), names_to = "type", values_to = "count") %>%
+    mutate(count = ifelse(type == "dn", -count, count)) %>%
+    complete(ratio, time, type, fill = list(count = 0)) %>%
+    mutate(ratio = factor(ratio, 
+                          levels = c("less","equal","more"),
+                          labels = c("1:1000","1:1","1000:1")),
+           type = factor(type,
+                         levels = c("up","dn"),
+                         labels = c("Up","Down")))
+}
 
 
-upset(fromList(PP_deg),
-      sets=pp_selected_sets,
-      nintersects = 10,keep.order = T,mb.ratio = c(0.6, 0.4),order.by = "freq")
-ggsave("figure S8.tiff",path="figures")
-```
-
-```{r fig.asp=0.8}
-## 差异表达基因个数的变化
-
-# E. coli
-EC_up_deg <- lapply(DEG_results.EC, function(x){with(x,gene[expression=="up"])})
-EC_dn_deg <- lapply(DEG_results.EC, function(x){with(x,gene[expression=="dn"])})
-names(EC_up_deg) <- sapply(comparisons.EC, function(x)x[-2])
-names(EC_dn_deg) <- sapply(comparisons.EC, function(x)x[-2])
-
-sapply(EC_up_deg, length) -> up
-sapply(EC_dn_deg, length) -> dn
-dn <- -dn
-deg_count_EC <- rbind(up,dn)
-p_deg_count_EC <- reshape2::melt(deg_count_EC) %>% 
-  separate(Var2,into = c("ratio0","time")) %>%
-  mutate(time=as.numeric(gsub("h","",time))) %>%
-  mutate(ratio0=factor(ratio0,levels = c("less","equal","more"),labels = c("1:1000","1:1","1000:1"))) %>%
-  ggplot(aes(time,value,group=Var1,color=Var1)) + 
-  geom_line(size=1) + 
-  # geom_text_repel(aes(label=value)) +
-  facet_wrap(~ratio0) + 
-  # xlim(c(4,24))+
-  scale_color_discrete(name="Gene expression:") +
-  scale_y_continuous(labels = function(x){abs(x)}) +
-  geom_point() +
-  labs(x="Time(h)",y="Count of DEGs",title=expression(paste("DEGs in ",italic("E. coli")))) +
-  theme(legend.position = c(0.618,1),
+deg_count_EC <- deg_count(DEG_results.EC)
+deg_count_PP <- deg_count(DEG_results.PP)
+count <- list(deg_count_EC, deg_count_PP)
+plots <- lapply(seq_along(count), function(i){
+  x <- count[[i]]
+  ggplot(x, aes(x = time, y = count, color = type)) +
+    geom_point() +
+    geom_line(size = 1) +
+    scale_y_continuous(labels = function(x){abs(x)}) +
+    facet_wrap(~ratio) +
+    labs(x="Time(h)",y="Count of DEGs",
+         color = "Gene expression:",
+         title= paste0("DEGs in *",organsim_fullname[[i]],"*")) +
+    theme(legend.position = c(0.618,1),
         legend.justification = c(0.5,-0.65),
-        legend.direction = "horizontal")
+        legend.direction = "horizontal",
+        plot.title = element_markdown())
+}) 
 
 
-# P. putida
-PP_up_deg <- lapply(DEG_results.PP, function(x){with(x,gene[expression=="up"])})
-PP_dn_deg <- lapply(DEG_results.PP, function(x){with(x,gene[expression=="dn"])})
-names(PP_up_deg) <- sapply(comparisons.PP, function(x)x[-2])
-names(PP_dn_deg) <- sapply(comparisons.PP, function(x)x[-2])
-
-sapply(PP_up_deg, length) -> up
-sapply(PP_dn_deg, length) -> dn
-dn<- - dn
-deg_count_PP <- rbind(up,dn)
-p_deg_count_PP <- reshape2::melt(deg_count_PP) %>% 
-  separate(Var2,into = c("ratio0","time")) %>%
-  mutate(time=as.numeric(gsub("h","",time))) %>%
-  mutate(ratio0=factor(ratio0,levels = c("less","equal","more"),labels = c("1:1000","1:1","1000:1"))) %>%
-  ggplot(aes(time,value,group=Var1,color=Var1)) + 
-  geom_line(size=1) + 
-  # geom_text_repel(aes(label=value)) +
-  facet_wrap(~ratio0) + 
-  scale_color_discrete(name="Gene expression:") +
-  geom_point() +
-  scale_y_continuous(labels = function(x){abs(x)}) +
-  # xlim(c(4,24))+
-  labs(x="Time(h)",y="Count of DEGs",title=expression(paste("DEGs in ",italic("P. putida")))) +
-  theme(legend.position = c(0.618,1),
-        legend.justification = c(0.5,-0.65),
-        legend.direction = "horizontal")
-
-
-plot_grid(p_deg_count_EC,p_deg_count_PP,labels = "AUTO",ncol = 1)
-ggsave("figure 4.tiff",path="figures")
-export::graph2ppt(file="figures.pptx",append=TRUE)
+plot_grid(plotlist = plots,labels = "AUTO",ncol = 1)
+# ggsave("figure 4.tiff", path="figures")
+# export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
-```{r}
-deg_count_EC %>% abs() %>% sum()
-deg_count_PP %>% abs() %>% sum()
-
-```
 
 Venn Diagram
 
@@ -519,18 +385,17 @@ Venn Diagram
 
 ```{r }
 library(ggVennDiagram)
-library(ggplot2)
 
-ratio0 <- c("less","equal","more")
+ratio0 <- c("1:1000","1:1","1000:1")
 deg_Venn_plot_EC <- lapply(1:3, function(i){
   gene_list <- lapply(DEG_results.EC[(i*4-3):(i*4)], function(x){x$gene})
   ggVennDiagram(gene_list,label = "count",
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
     coord_equal() +
-    labs(title=ratio0[[i]]) +
+    labs(title=paste0(ratio0[[i]]," (*E. coli*)")) +
     theme(legend.position = "none",
-          plot.title = element_text(hjust=0.5))
+          plot.title = element_markdown(hjust=0.5))
 })
 
 deg_Venn_plot_PP <- lapply(1:3, function(i){
@@ -539,14 +404,14 @@ deg_Venn_plot_PP <- lapply(1:3, function(i){
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
     coord_equal() +
-    labs(title=ratio0[[i]]) +
+    labs(title=paste0(ratio0[[i]]," (*P. putida*)")) +
     theme(legend.position = "none",
-          plot.title = element_text(hjust=0.5))
+          plot.title = element_markdown(hjust=0.5))
 })
 
 plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
           labels = "AUTO")
-ggsave("figure S9.tiff",path="figures")
+# ggsave("figure S9.tiff",path="figures")
 ```
 
 # gseKEGG 分析
