@@ -1,0 +1,96 @@
+---
+title: "原始数据处理"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 生长曲线数据处理
+
+```{r}
+## read qPCR raw data
+result_file <- list.files(path="./data-raw/qPCR_growth_curve", 
+                          pattern = "Results_ViiA7_export.txt",
+                          full.names = T)
+result1 <- read_delim(result_file[[1]],"\t",skip=43,na="Undetermined")
+result2 <- read_delim(result_file[[2]],"\t",skip=43,na="Undetermined")
+result2 <- filter(result2,Task!="STANDARD")
+results <- rbind(result1,result2)
+
+## read qPCR meta data
+meta_file <- list.files(path="./data-raw/qPCR_growth_curve", 
+                        pattern = "meta.txt",
+                        full.names = T)
+meta <- read_delim(meta_file,"\t")
+
+## combine results with meta data
+results <- results %>% 
+  select(Well,`Sample Name`,`Target Name`,CT) %>% 
+  dplyr::rename(sample=`Sample Name`,species=`Target Name`) %>%
+  left_join(meta,by="sample")
+
+## remove unspecific 
+results <- results %>%
+  filter(!(condition=="all" & species=="PP")) %>%
+  filter(!(condition=="none" & species=="EC"))
+
+## 计算定量数据
+cal_quantity <- function(ct){10^(-.2922*ct+12.077)}
+results <- results %>% mutate(quantity=cal_quantity(CT)*dilution) %>%
+  filter(quantity > 1e5)
+
+
+qPCR_data <- results %>% 
+  select(sample, condition, time, species, quantity) %>%
+  arrange(as.numeric(str_extract(sample,"[0-9]+")), condition)
+
+write.csv(qPCR_data, file = "data/qPCR-data.csv",row.names = FALSE)
+```
+
+
+## RNA-seq
+
+### 鉴定差异表达基因
+
+从 ht-seq counts 结果出发。
+
+```{r cars}
+ht_counts <- readRDS("data/rna/ht_counts.rds")
+library(DESeq2)
+
+mat.EC <- myDESeqMatrix(ht_counts,org = "EC")
+mat.PP <- myDESeqMatrix(ht_counts,org = "PP")
+
+dds.EC <- DESeqDataSetFromMatrix(countData = mat.EC$count_data, 
+                                 colData   = mat.EC$col_data,
+                                 design    = ~ group)
+dds.PP <- DESeqDataSetFromMatrix(countData = mat.PP$count_data, 
+                                 colData   = mat.PP$col_data,
+                                 design    = ~ group)
+
+# run DESeq()
+dds.EC <- DESeq(dds.EC)  # this step is time consuming  标准化
+dds.PP <- DESeq(dds.PP)
+
+# get deg
+DEG_results.EC <- myDEG_Results(dds=dds.EC, comparison = comparisons.EC)
+DEG_results.PP <- myDEG_Results(dds=dds.PP, comparison = comparisons.PP)
+
+
+saveRDS(dds.EC,"data/dds.EC.2.rds")
+saveRDS(dds.PP,"data/dds.PP.2.rds")
+saveRDS(DEG_results.EC,"data/DEG_results.EC.rds")
+saveRDS(DEG_results.PP,"data/DEG_results.PP.rds")
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
