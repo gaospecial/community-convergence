@@ -234,6 +234,7 @@ plots <- lapply(seq_along(pvalues), function(i){
   corrplot(x$p.value, 
            type = "lower",
            col = "grey",
+           cl.pos = "n",
            is.corr = FALSE, 
            method = "circle",
            p.mat = x$p.value,
