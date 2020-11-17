@@ -70,7 +70,7 @@ coculture <- growth_data %>%
 growth_curve_mono <- ggplot(monoculture,aes(time,y,color=species)) +
   geom_line(lty="dashed",size=1) +
     geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5) + 
-    geom_point(data = df_monoculture) 
+    geom_point(data = monoculture) 
 growth_curves_coculture <- lapply(c("less","equal","more"), function(x){
   ggplot(mapping = aes(time,y,color=species)) + 
     geom_line(lty="dashed",size=1,alpha=1/3,data = monoculture) +
@@ -131,125 +131,31 @@ plot_grid(plotlist = plots,ncol=5,labels = "AUTO")
 
 ```
 
-```{r fig.width=12}
-results_final <- tidyr::unite(results, species_time, species,time,remove = FALSE)
-results_final$species_time <- as.factor(results_final$species_time)
-results_final$species <- as.factor(results_final$species)
-levels(results_final$species) <- c("E. coli","P. putida")
-levels(results_final$condition) <- c("mono","less","equal","more","mono")
-results_final$species_time <- factor(results_final$species_time, levels = c("EC_0", "EC_0.5", "EC_1", "EC_2", "EC_4", "EC_8", "EC_24", "PP_0", "PP_0.5", "PP_1", "PP_2", "PP_4", "PP_8", "PP_24"))
-groups <- levels(results_final$species_time)
 
-plots <- lapply(1:length(groups),function(i){  #不分面，循环，布局规整
-  df <- results_final %>% filter(species_time == groups[[i]]) %>% select(species,condition,quantity,time)
-  df$condition <- relevel(df$condition, "mono")
-  ggplot(df,aes(condition,log10(quantity))) + 
-    geom_boxplot() + 
-    geom_jitter() +  
-    xlab("Condition") + ylab("Log10(quantity)")+
-    scale_x_discrete(labels=c("mono","1:1000","1:1","1000:1"))+
-    scale_y_continuous(limits = c(5,11.3),breaks = 5:10) +
-    labs(subtitle =df$species )+
-    geom_text(x=1,y=11,label=paste0(df$time,"h"),color="grey",vjust = "inward",hjust="center",inherit.aes = F,data = NULL) +
-    stat_compare_means(ref.group = "mono",label = "p.signif", label.y = 11) +
-    theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
-          plot.subtitle = element_text(face = "italic"))
-})
+### Ratio (EC/PP) changes in cocultures
 
-plot_grid(plot_grid(plotlist = plots,labels = "AUTO",ncol=5),ncol=1)
-ggsave("figure s1.tiff",path="figures")
-#export::graph2ppt(file="figures.pptx",append=TRUE)
-
-
-```
-
-## 计算共培养体系中 ratio 的实时变化
+Ratios of EC/PP in cocultures were calculated, and ratio changes in cocultures were compared in Figure \@ref(fig:ratio-change).
 
 ```{r}
-results %>% 
-  filter(condition %in% c("less","equal","more"), species=="EC") %>% 
-  spread(species,quantity) %>%
-  select(-Well, -CT,-dilution) -> a
-results %>% 
-  filter(condition %in% c("less","equal","more"), species=="PP") %>%
-  spread(species,quantity) %>%
-  select(-Well, -CT,-dilution)  -> b
-idx <- a$sample == b$sample
-a <- a[idx,]
-b <- b[idx,]
-a$PP <- b$PP
-ratio <- a %>% mutate(ratio=EC/PP) 
-
-### stats
-
-ratio1 <- ratio %>% filter(condition=="more") %>% mutate(time=factor(time))
-aov <-  aov(ratio~time,ratio1)
-TukeyHSD(aov)
-
+# calculate ratio in cocultures
+ratio <- qPCR_data %>% 
+  filter(condition %in% c("less","equal","more")) %>% 
+  group_by(sample, condition, species, time) %>% 
+  mutate(rep = row_number()) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = species, values_from = quantity) %>%
+  mutate(ratio = EC/PP) %>%
+  filter(!is.na(ratio))
 ```
 
-```{r}
-shapiro.test(x=residuals(aov))
+Figure \@ref(fig:ratio-change) shows the deterministic assembly of *E. coli* and *P. putida* cocultures. (A) the real-time ratio of EC: PP after 0, 0.5, 1, 2, 4, 8 and 24 h cultivation. (B) Analysis of the variances of EC/PP ratios (24h) between cocultures.
 
-```
-
-```{r}
-(p1 <- pairwise.wilcox.test(ratio1$ratio,ratio1$time,p.adjust.method = "BH"))
-
-```
-
-```{r}
-ratio2 <- ratio %>% filter(condition=="equal") %>% mutate(time=factor(time))
-aov <-  aov(ratio~time,ratio2)
-TukeyHSD(aov)
-
-```
-
-```{r}
-shapiro.test(x=residuals(aov))
-
-```
-
-```{r}
-(p2 <- pairwise.wilcox.test(ratio2$ratio,ratio2$time,p.adjust.method = "BH"))
-
-```
-
-```{r}
-ratio3 <- ratio %>% filter(condition=="less") %>% mutate(time=factor(time))
-aov <-  aov(ratio~time,ratio3)
-TukeyHSD(aov)
-
-```
-
-```{r}
-shapiro.test(x=residuals(aov))
-
-```
-
-```{r}
-(p3 <- pairwise.wilcox.test(ratio3$ratio,ratio3$time,p.adjust.method = "BH"))
-
-```
-
-```{r}
-#plots <- lapply(c(p1,p2,p3), function(x) corrplot(x$p.value,is.corr = F,type="lower",addCoef.col = "grey",cl.lim = c(0,1)))
-par(mfrow=c(1,3))
-plots <- lapply(list(p1,p2,p3), function(x) corrplot(x$p.value,is.corr = F,type="lower",addCoef.col = "grey"))
-ggsave("figure S2.tiff",path="figures")
-export::graph2ppt(file="figures.pptx",append=TRUE)
-
-```
-
-从上图可以看出，在0-4h期间，ratio之间有时在统计学上并没有显著差异。
-
-在24h的时候，less和equal组ratio间没有显著差异。 而more和equal之间的差异虽然在统计学上显著，但相对于前期的巨大差异，仍然可以认为是接近的。
-
-```{r fig.width=6,fig.asp=0.618}
+```{r ratio-change, fig.width=6, fig.asp=0.618}
 ratio.sum <- ratio %>% 
   group_by(sample) %>%
-  summarise(y=mean(ratio),std=sd(ratio)) %>% 
-  left_join(meta)
+  mutate(y=mean(ratio,na.rm=TRUE),std=sd(ratio,na.rm=TRUE)) %>% 
+  select(sample,condition, time, y, std) %>%
+  unique()
 ratio.sum$condition <- factor(ratio.sum$condition,
                         levels = c("less","equal","more"),
                         labels = c("1:1000","1:1","1000:1")) 
@@ -276,19 +182,69 @@ plot_ratio_stats <- ggplot(ratio_24h,aes(condition,ratio,color=condition)) +
   stat_compare_means(
     comparisons = list(c("less","equal"),c("less","more"),c("equal","more")),
     label="p.format") +
-   scale_x_discrete(breaks=c("less","equal","more"),labels=c("1:1000","1:1","1000:1"))+
-  # labs(subtitle = "comparison of EC/PP ratios (24h)") +
+   scale_x_discrete(breaks=c("less","equal","more"),
+                    labels=c("1:1000","1:1","1000:1"))+
   xlab("Condition") + ylab("Ratio (EC/PP)") +
-  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
-        legend.position = "none",
+  theme(legend.position = "none",
         panel.background = element_rect(fill="lightyellow"
       ))
 
 plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
-ggsave("figure 2.tiff",path="figures")
-export::graph2ppt(file="figures.pptx",append=TRUE)
-# export::graph2ppt()
+# ggsave("figure 2.tiff",path="figures")
+# export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
+
+Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)). 
+
+For each coculture, significance of variances between each sample were as follows:
+
+- the 1:1000 coculture
+
+```{r}
+### stats
+ratio1 <- ratio %>% filter(condition=="less")
+(p1 <- pairwise.wilcox.test(ratio1$ratio,ratio1$time,p.adjust.method = "BH"))
+```
+
+- the 1:1 coculture
+
+```{r}
+ratio2 <- ratio %>% filter(condition=="equal")
+(p2 <- pairwise.wilcox.test(ratio2$ratio,ratio2$time,p.adjust.method = "BH"))
+```
+
+- and the 1000:1 coculture
+
+```{r}
+ratio3 <- ratio %>% filter(condition=="more")
+(p3 <- pairwise.wilcox.test(ratio3$ratio,ratio3$time,p.adjust.method = "BH"))
+```
+
+Figure \@ref(fig:comparison-by-time) shows P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures. Circles showed the adjusted p-value for the comparison of the EC/PP ratios between two samples, which were indicated on the top and left (large circle mean large p-value). On this plot, a cross mark was given if the p-value is non-significant (P > 0.05).
+
+```{r comparison-by-time, fig.cap="P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures.", fig.asp=0.4}
+par(mfrow=c(1,3))
+pvalues <- list(p1,p2,p3)
+line = 0
+cex = 1.2
+side = 3
+adj=0.15
+plots <- lapply(seq_along(pvalues), function(i){
+  x <- pvalues[[i]]
+  corrplot(x$p.value, 
+           type = "lower",
+           col = "grey",
+           is.corr = FALSE, 
+           method = "circle",
+           p.mat = x$p.value,
+           sig.level = 0.05)
+  mtext(LETTERS[[i]], side = side, line = line, cex = cex, adj = adj)
+
+})
+
+```
+
+
 
 ## Gene expression analysis
 
