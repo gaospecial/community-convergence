@@ -285,7 +285,7 @@ plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights
 
 ```
 
-# Identify gene expression changes
+### Identify gene expression changes
 
 This step is a time consuming step. Use the precalculated DEG if possible.
 
@@ -298,7 +298,7 @@ DEG_results.EC <- readRDS("data/DEG_results.EC.rds")
 DEG_results.PP <- readRDS("data/DEG_results.PP.rds")
 ```
 
-# RNA-seq clustering
+### RNA-seq clustering
 
 ```{r}
 list_of_vsd <- lapply(list(dds.EC,dds.PP),function(dds){
@@ -319,10 +319,9 @@ list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
     facet_wrap(~time,ncol=4) +
     directlabels::geom_dl(aes(label=ratio0),method = "smart.grid",size=2) +  #文本代替标签 位置标注的不好,改size没用
     scale_color_manual(limits=c("E. coli","1:1000","1:1","1000:1","P. putida"),
-                       values = brewer.pal(5,"Dark2"))
+                       values = brewer.pal(5,"Dark2")) +
+    theme(legend.position = "none")
   })
-
-legend <- get_legend(list_of_PCA_plot[[1]] + theme(legend.position = "right"))
 
 plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
 # ggsave("figure 3.tiff",path="figures")
@@ -333,7 +332,7 @@ plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
 
 Figure \@ref(fig:count-of-deg) shows the Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
 
-```{r count-of-deg, fig.asp=0.618,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B)."}
+```{r count-of-deg, fig.asp=0.618,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B).",fig.width=6}
 ## count DEG
 deg_count <- function(data){
   do.call("rbind",lapply(data, function(x) table(x$expression))) %>%
@@ -378,33 +377,32 @@ plot_grid(plotlist = plots,labels = "AUTO",ncol = 1)
 # export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
+### Specific DEGs in *E. coli* and *P. putida*
 
-Venn Diagram
+Figure \@ref(fig:deg-venn) shows the comparision of differentially expressed genes by time in *E. coli* (A-C) and *P. putida* (D-F). Although DEGs overlapped for different time, specific genes are the majority in almost every time point. For instance, 57 out of 93 DEGs are specific in 1:1000 coculture in *E. coli* (Fig. \@ref(fig:deg-venn)A).
 
-"less"组*E. coli*和"more"组的*P. putida*差异表达基因随时间变化。在这两个组合中，不仅差异表达基因数目多，且其中的很大一部分都是特异性的表达。
-
-```{r }
+```{r deg-venn, fig.width=8, fig.cap="Comparision of differentially expressed genes by time"}
 library(ggVennDiagram)
 
 ratio0 <- c("1:1000","1:1","1000:1")
-deg_Venn_plot_EC <- lapply(1:3, function(i){
+deg_Venn_plot_EC <- lapply(seq_along(ratio0), function(i){
   gene_list <- lapply(DEG_results.EC[(i*4-3):(i*4)], function(x){x$gene})
   ggVennDiagram(gene_list,label = "count",
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
     coord_equal() +
-    labs(title=paste0(ratio0[[i]]," (*E. coli*)")) +
+    labs(title=paste0(ratio0[[i]]," - *E. coli*")) +
     theme(legend.position = "none",
           plot.title = element_markdown(hjust=0.5))
 })
 
-deg_Venn_plot_PP <- lapply(1:3, function(i){
+deg_Venn_plot_PP <- lapply(seq_along(ratio0), function(i){
   gene_list <- lapply(DEG_results.PP[(i*4-3):(i*4)], function(x){x$gene})
   ggVennDiagram(gene_list,label = "count",
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
     coord_equal() +
-    labs(title=paste0(ratio0[[i]]," (*P. putida*)")) +
+    labs(title=paste0(ratio0[[i]]," - *P. putida*")) +
     theme(legend.position = "none",
           plot.title = element_markdown(hjust=0.5))
 })
@@ -414,121 +412,72 @@ plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
 # ggsave("figure S9.tiff",path="figures")
 ```
 
-# gseKEGG 分析
+## Get set enrichment analysis (GSEA)
 
-GSEA分析需要使用全谱。因此需要重新获得差异表达基因的列表。
+GSEA use all genes' expressions, so we need to get a unfiltered gene expression data.
 
 ```{r}
+comparisons.EC <- list(c("less_0h","all_0h"),
+                       c("equal_0h","all_0h"),
+                       c("more_0h","all_0h"),
+                       c("less_4h","all_4h"),
+                       c("equal_4h","all_4h"),
+                       c("more_4h","all_4h"),
+                       c("less_8h","all_8h"),
+                       c("equal_8h","all_8h"),
+                       c("more_8h","all_8h"),
+                       c("less_24h","all_24h"),
+                       c("equal_24h","all_24h"),
+                       c("more_24h","all_24h"))
+
+comparisons.PP <- list(c("less_0h","none_0h"),
+                       c("equal_0h","none_0h"),
+                       c("more_0h","none_0h"),
+                       c("less_4h","none_4h"),
+                       c("equal_4h","none_4h"),
+                       c("more_4h","none_4h"),
+                       c("less_8h","none_8h"),
+                       c("equal_8h","none_8h"),
+                       c("more_8h","none_8h"),
+                       c("less_24h","none_24h"),
+                       c("equal_24h","none_24h"),
+                       c("more_24h","none_24h"))
+
 full_DEG_results.EC <- myDEG_Results(dds.EC,comparison = comparisons.EC,filtered = F)
 full_DEG_results.PP <- myDEG_Results(dds.PP,comparison = comparisons.PP,filtered = F)
 
 ```
 
-## 计算 GSEA 的结果
 
-### 计算 *E. coli*中 GSEA KEGG 的结果
+### *E. coli* GSEA KEGG result
 
-```{r gseKEGG_results.EC,fig.width=12,fig.asp=1}
+```{r gseKEGG-result-EC, warning=FALSE}
 library(clusterProfiler)
-library(enrichplot)
 
-gseKEGG_results.EC <- lapply(full_DEG_results.EC, function(x){
+get_genelist <- function(x){
   if (nrow(x) < 1) return(NULL)
   geneList <- x$log2FoldChange
   names(geneList) <- x$gene
-  geneList <- sort(geneList,decreasing = T) #排序
+  geneList <- sort(geneList,decreasing = T) 
+  return(geneList)
+}
+
+gseKEGG_results.EC <- lapply(full_DEG_results.EC, function(x){
+  geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
 })
 ```
 
-### 计算 *E. coli* GSEA GO分析的结果
 
-```{r }
-library(org.EcK12.eg.db)
-full_geneList.EC <- lapply(full_DEG_results.EC, function(x){
-  geneList <- x$log2FoldChange
-  names(geneList) <- bitr_kegg(x$gene,
-                               fromType = "kegg",
-                               toType = "ncbi-geneid",
-                               organism = "eco")$`ncbi-geneid`
-  geneList <- sort(geneList,decreasing = T)
-  return(geneList)
-})
+### *P. putida* GSEA KEGG result
 
-
-gseGO_MF_results.EC <- lapply(full_geneList.EC, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.EcK12.eg.db,
-        ont = "MF")
-})
-
-gseGO_CC_results.EC <- lapply(full_geneList.EC, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.EcK12.eg.db,
-        ont = "CC")
-})
-
-gseGO_BP_results.EC <- lapply(full_geneList.EC, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.EcK12.eg.db,
-        ont = "BP")
-})
-```
-
-### 计算 *P. putida* 中 GSEA KEGG 的结果
-
-```{r}
+```{r gseKEGG-result-PP, warning=FALSE}
 gseKEGG_results.PP <- lapply(full_DEG_results.PP, function(x){
-  if (nrow(x) < 1) return(NULL)
-  geneList <- x$log2FoldChange
-  names(geneList) <- x$gene
-  geneList <- sort(geneList,decreasing = T)
+  geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
 })
 ```
 
-### 计算 *P. putida* 中 GSEA GO 的结果
-
-```{r}
-library(AnnotationHub)
-ah <- AnnotationHub()
-(pp <- query(ah,c("putida","KT2440")))
-# pp["AH73771"]
-# pp["AH73772"]
-# pp["AH73773"]
-org.ppu.eg.db <- ah[["AH73772"]]
-```
-
-```{r }
-full_geneList.PP <- lapply(full_DEG_results.PP, function(x){
-  geneList <- x$log2FoldChange
-  names(geneList) <- bitr_kegg(x$gene,
-                               fromType = "kegg",
-                               toType = "ncbi-geneid",
-                               organism = "ppu")$`ncbi-geneid`
-  geneList <- sort(geneList,decreasing = T)
-  return(geneList)
-})
-
-
-gseGO_MF_results.PP <- lapply(full_geneList.PP, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.ppu.eg.db,
-        ont = "MF")
-})
-
-gseGO_CC_results.PP <- lapply(full_geneList.PP, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.ppu.eg.db,
-        ont = "CC")
-})
-
-gseGO_BP_results.PP <- lapply(full_geneList.PP, function(geneList){
-  gseGO(geneList, 
-        OrgDb = org.ppu.eg.db,
-        ont = "BP")
-})
-```
 
 ```{r gseKEGG_plots.EC,fig.width=8,fig.asp=2}
 gseKEGG_plots.EC <- lapply(seq_along(gseKEGG_results.EC), function(i){
@@ -555,7 +504,7 @@ for (i in seq_along(gseKEGG_plots.EC)){
 # 只有 less 组（即前3个）有结果
 plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol = 1,labels = "AUTO")
 
-ggsave("figure S10.tiff",path="figures")
+# ggsave("figure S10.tiff",path="figures")
 # export::graph2ppt(plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol=1,labels = "AUTO"),file="EC_gseKEGG_gseaplot.pptx")
 ```
 
