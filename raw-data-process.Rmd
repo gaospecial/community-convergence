@@ -56,9 +56,10 @@ write.csv(qPCR_data, file = "data/qPCR-data.csv",row.names = FALSE)
 
 从 ht-seq counts 结果出发。
 
-```{r cars}
+```{r deseq}
 ht_counts <- readRDS("data/rna/ht_counts.rds")
 library(DESeq2)
+source("./functions/functions.R")
 
 mat.EC <- myDESeqMatrix(ht_counts,org = "EC")
 mat.PP <- myDESeqMatrix(ht_counts,org = "PP")
@@ -75,6 +76,32 @@ dds.EC <- DESeq(dds.EC)  # this step is time consuming  标准化
 dds.PP <- DESeq(dds.PP)
 
 # get deg
+comparisons.EC <- list(c("less_0h","all_0h"),
+                       c("equal_0h","all_0h"),
+                       c("more_0h","all_0h"),
+                       c("less_4h","all_4h"),
+                       c("equal_4h","all_4h"),
+                       c("more_4h","all_4h"),
+                       c("less_8h","all_8h"),
+                       c("equal_8h","all_8h"),
+                       c("more_8h","all_8h"),
+                       c("less_24h","all_24h"),
+                       c("equal_24h","all_24h"),
+                       c("more_24h","all_24h"))
+
+comparisons.PP <- list(c("less_0h","none_0h"),
+                       c("equal_0h","none_0h"),
+                       c("more_0h","none_0h"),
+                       c("less_4h","none_4h"),
+                       c("equal_4h","none_4h"),
+                       c("more_4h","none_4h"),
+                       c("less_8h","none_8h"),
+                       c("equal_8h","none_8h"),
+                       c("more_8h","none_8h"),
+                       c("less_24h","none_24h"),
+                       c("equal_24h","none_24h"),
+                       c("more_24h","none_24h"))
+
 DEG_results.EC <- myDEG_Results(dds=dds.EC, comparison = comparisons.EC)
 DEG_results.PP <- myDEG_Results(dds=dds.PP, comparison = comparisons.PP)
 
