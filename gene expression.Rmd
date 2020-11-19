@@ -106,12 +106,12 @@ Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the sp
 ```{r monoculture-vs-coculture, fig.width=12,fig.cap="Analysis the variance of the species abundances between monoculture and three cocultures"}
 ref_group <- c("all","none")
 library(ggtext)
-plots <- lapply(c(1,2), function(i){
+plots <- lapply(seq_along(ref_group), function(i){
   ref <- ref_group[[i]]
   lapply(c(0,0.5,1,2,4,8,24), function(x){
    df <- qPCR_data %>% 
      filter(species == organism[[i]],time==x) %>% 
-     select(condition,quantity)
+     dplyr::select(condition,quantity)
   df$condition <- relevel(df$condition, ref)
   ggplot(df,aes(condition,log10(quantity))) + 
     geom_boxplot() + 
@@ -151,7 +151,7 @@ Figure \@ref(fig:ratio-change) shows the deterministic assembly of *E. coli* and
 ratio.sum <- ratio %>% 
   group_by(sample) %>%
   mutate(y=mean(ratio,na.rm=TRUE),std=sd(ratio,na.rm=TRUE)) %>% 
-  select(sample,condition, time, y, std) %>%
+  dplyr::select(sample,condition, time, y, std) %>%
   unique()
 ratio.sum$condition <- factor(ratio.sum$condition,
                         levels = c("less","equal","more"),
@@ -412,47 +412,82 @@ plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
 # ggsave("figure S9.tiff",path="figures")
 ```
 
+## Enrichment analysis of DEGs
+
+```{r}
+ck_plot <- function(ck){
+  df <- data.frame(ck) %>%
+    mutate(ratio = factor(ratio, levels = c("less","equal","more"),
+                          labels = c("1:1000","1:1","1000:1")),
+           time = factor(time, levels = c("0h","4h","8h","24h")),
+           expression = factor(expression, 
+                               levels = c("up","dn"),
+                               labels = c("up-regulated", "down-regulated"))) %>%
+    filter(Count >= 5)
+  df$GeneRatio <- sapply(df$GeneRatio, function(x) eval(parse(text = x)))
+  ggplot(df, aes(time, Description, size = GeneRatio, color = p.adjust)) +
+    geom_point() +
+    facet_grid(ratio ~ expression, scales = "free_y") +
+    labs(y="KEGG pathway")
+}
+
+
+grid_panel <- function(p){
+  # 调整panel的高度
+  gp <- ggplotGrob(p)
+  gtable_show_layout(gp)
+  facet.rows <- gp$layout$t[grepl("panel",gp$layout$name)]
+  y.var <- sapply(ggplot_build(p)$layout$panel_scales_y,
+                  function(l) length(l$range$range))
+  gp$heights[facet.rows] <- gp$heights[facet.rows] * y.var
+  return(gp)
+}
+```
+
+
+```{r include=FALSE}
+## KEGG enrichment in E. coli
+deg1 <- do.call("rbind", DEG_results.EC) %>% 
+  separate(comparison, into = c("ratio","time"), extra = "drop")
+
+ck1 <- compareCluster(gene ~ ratio + time + expression, 
+                      data = deg1, 
+                      fun = "enrichKEGG", 
+                      organism = "eco") 
+
+p1 <- ck_plot(ck1)
+p1 <- grid_panel(p1)
+
+## KEGG enrichment in P. putida
+deg2 <- do.call("rbind", DEG_results.PP) %>% 
+  separate(comparison, into = c("ratio","time"), extra = "drop")
+
+ck2 <- compareCluster(gene ~ ratio + time + expression, 
+                      data = deg2, 
+                      fun = "enrichKEGG", 
+                      organism = "ppu") 
+
+p2 <- ck_plot(ck2)
+p2 <- grid_panel(p2)
+```
+
+
+```{r fig.width=8, fig.asp=1.2}
+plot_grid(p1,p2, rel_heights = c(1,0.5), ncol = 1, labels = "AUTO",align = "v")
+```
+
 ## Get set enrichment analysis (GSEA)
 
 GSEA use all genes' expressions, so we need to get a unfiltered gene expression data.
 
 ```{r}
-comparisons.EC <- list(c("less_0h","all_0h"),
-                       c("equal_0h","all_0h"),
-                       c("more_0h","all_0h"),
-                       c("less_4h","all_4h"),
-                       c("equal_4h","all_4h"),
-                       c("more_4h","all_4h"),
-                       c("less_8h","all_8h"),
-                       c("equal_8h","all_8h"),
-                       c("more_8h","all_8h"),
-                       c("less_24h","all_24h"),
-                       c("equal_24h","all_24h"),
-                       c("more_24h","all_24h"))
-
-comparisons.PP <- list(c("less_0h","none_0h"),
-                       c("equal_0h","none_0h"),
-                       c("more_0h","none_0h"),
-                       c("less_4h","none_4h"),
-                       c("equal_4h","none_4h"),
-                       c("more_4h","none_4h"),
-                       c("less_8h","none_8h"),
-                       c("equal_8h","none_8h"),
-                       c("more_8h","none_8h"),
-                       c("less_24h","none_24h"),
-                       c("equal_24h","none_24h"),
-                       c("more_24h","none_24h"))
-
-full_DEG_results.EC <- myDEG_Results(dds.EC,comparison = comparisons.EC,filtered = F)
-full_DEG_results.PP <- myDEG_Results(dds.PP,comparison = comparisons.PP,filtered = F)
-
+gene_expression.EC <- readRDS("data/gene_expression.EC.rds")
+gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 ```
 
 
-### *E. coli* GSEA KEGG result
 
 ```{r gseKEGG-result-EC, warning=FALSE}
-library(clusterProfiler)
 
 get_genelist <- function(x){
   if (nrow(x) < 1) return(NULL)
@@ -462,68 +497,57 @@ get_genelist <- function(x){
   return(geneList)
 }
 
-gseKEGG_results.EC <- lapply(full_DEG_results.EC, function(x){
+### *E. coli* GSEA KEGG result
+gseKEGG_results.EC <- lapply(gene_expression.EC, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
 })
-```
-
 
 ### *P. putida* GSEA KEGG result
-
-```{r gseKEGG-result-PP, warning=FALSE}
-gseKEGG_results.PP <- lapply(full_DEG_results.PP, function(x){
+gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
 })
 ```
 
-
-```{r gseKEGG_plots.EC,fig.width=8,fig.asp=2}
-gseKEGG_plots.EC <- lapply(seq_along(gseKEGG_results.EC), function(i){
-  x <- gseKEGG_results.EC[[i]]
-  label <- names(gseKEGG_results.EC)[[i]]
-  if (nrow(data.frame(x)) < 1) return(NULL)
-  geneset <- seq(1,nrow(data.frame(x)))
-  gseaplot2(x,geneSetID = geneset,pvalue_table = T) +
-    labs(title=label) +
-    theme(legend.position = "right")
-})
-
-for (i in seq_along(gseKEGG_plots.EC)){
-  plot <- gseKEGG_plots.EC[[i]]
-  label <- names(gseKEGG_results.EC)[[i]]
-  if(is.null(plot)){
-    gseKEGG_plots.EC[[i]] <- ggdraw(NULL) + draw_figure_label(label, position = "top")
-  }
-  else{
-    gseKEGG_plots.EC[[i]] <- gseKEGG_plots.EC[[i]] + draw_figure_label(label, position = "top")
-  }
+```{r}
+# combine GSEA result and plot
+gse_dotplot <- function(result){
+  name <- names(result)
+  l <- lapply(seq_along(result), function(i){
+    data.frame(result[[i]]) %>%
+      mutate(comparison = name[[i]])
+  })
+  df <- do.call("rbind", l) %>%
+    separate(comparison, into = c("ratio","time"), extra = "drop") %>%
+    mutate(ratio = factor(ratio, levels = c("less","equal","more"),
+                          labels = c("1:1000","1:1","1000:1")),
+           time = factor(time, levels = c("0h","4h","8h","24h")),
+           type = ifelse(enrichmentScore >0, "activated", "suppressed")) 
+  ggplot(df, aes(time, Description, size = enrichmentScore, color= p.adjust)) +
+    geom_point() +
+    facet_grid(ratio ~ type, scales = "free_y") +
+    labs(y="KEGG pathway")
 }
-
-# 只有 less 组（即前3个）有结果
-plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol = 1,labels = "AUTO")
-
-# ggsave("figure S10.tiff",path="figures")
-# export::graph2ppt(plot_grid(plotlist = gseKEGG_plots.EC[1:4],ncol=1,labels = "AUTO"),file="EC_gseKEGG_gseaplot.pptx")
 ```
 
-```{r gseGO_analysis,fig.width=12,fig.asp=1}
-gseGO_MF_gseplots.EC <- lapply(gseGO_MF_results.EC, function(x){
-  if (nrow(data.frame(x)) < 1) return(NULL)
-  geneset <- seq(1,nrow(data.frame(x)))
-  gseaplot2(x,geneSetID = geneset)
-})
+```{r include=FALSE}
+## GSEA dotplot of E. coli
+p1 <- gse_dotplot(gseKEGG_results.EC)
+p1 <- grid_panel(p1)
 
-# 只有 less 组（即前3个）有结果
-plot_grid(plotlist = gseGO_MF_gseplots.EC[1:3])
-
-ggsave("figure S11.tiff",path="figures")
-
-
+## GSEA dotplot of P. putida
+p2 <- gse_dotplot(gseKEGG_results.PP)
+p2 <- grid_panel(p2)
 ```
 
-## GSEA 结果可视化
+
+```{r fig.asp=1.2}
+plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO")
+```
+
+
+## Combine over 
 
 ### GSEA KEGG dotplot
 
