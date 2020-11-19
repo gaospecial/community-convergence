@@ -104,12 +104,16 @@ comparisons.PP <- list(c("less_0h","none_0h"),
 
 DEG_results.EC <- myDEG_Results(dds=dds.EC, comparison = comparisons.EC)
 DEG_results.PP <- myDEG_Results(dds=dds.PP, comparison = comparisons.PP)
+gene_expression.EC <- myDEG_Results(dds.EC,comparison = comparisons.EC,filtered = F)
+gene_expression.PP <- myDEG_Results(dds.PP,comparison = comparisons.PP,filtered = F)
 
 
 saveRDS(dds.EC,"data/dds.EC.2.rds")
 saveRDS(dds.PP,"data/dds.PP.2.rds")
 saveRDS(DEG_results.EC,"data/DEG_results.EC.rds")
 saveRDS(DEG_results.PP,"data/DEG_results.PP.rds")
+saveRDS(gene_expression.EC, "data/gene_expression.EC.rds")
+saveRDS(gene_expression.PP, "data/gene_expression.PP.rds")
 ```
 
 ## Including Plots
