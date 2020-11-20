@@ -414,6 +414,8 @@ plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
 
 ## Enrichment analysis of DEGs
 
+We use `clusterProfiler` to perform KEGG enrichment analysis.
+
 ```{r}
 ck_plot <- function(ck){
   df <- data.frame(ck) %>%
@@ -422,10 +424,9 @@ ck_plot <- function(ck){
            time = factor(time, levels = c("0h","4h","8h","24h")),
            expression = factor(expression, 
                                levels = c("up","dn"),
-                               labels = c("up-regulated", "down-regulated"))) %>%
-    filter(Count >= 5)
+                               labels = c("up-regulated", "down-regulated"))) 
   df$GeneRatio <- sapply(df$GeneRatio, function(x) eval(parse(text = x)))
-  ggplot(df, aes(time, Description, size = GeneRatio, color = p.adjust)) +
+  ggplot(df, aes(time, Description, size = GeneRatio)) +
     geom_point() +
     facet_grid(ratio ~ expression, scales = "free_y") +
     labs(y="KEGG pathway")
@@ -434,6 +435,7 @@ ck_plot <- function(ck){
 
 grid_panel <- function(p){
   # 调整panel的高度
+  require(gtable)
   gp <- ggplotGrob(p)
   gtable_show_layout(gp)
   facet.rows <- gp$layout$t[grepl("panel",gp$layout$name)]
@@ -471,9 +473,10 @@ p2 <- ck_plot(ck2)
 p2 <- grid_panel(p2)
 ```
 
+(ref:kegg-ora-cap) A dot plot shows the KEGG enrichment result of *E. coli* (A) and *P. putida* (B) in the three coculture as a function of time.
 
-```{r fig.width=8, fig.asp=1.2}
-plot_grid(p1,p2, rel_heights = c(1,0.5), ncol = 1, labels = "AUTO",align = "v")
+```{r kegg-ora, fig.width=8, fig.asp=1.2, fig.cap="(ref:kegg-ora-cap) "}
+plot_grid(p1,p2, rel_heights = c(1,0.4), ncol = 1, labels = "AUTO",align = "v")
 ```
 
 ## Get set enrichment analysis (GSEA)
@@ -488,7 +491,6 @@ gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 
 
 ```{r gseKEGG-result-EC, warning=FALSE}
-
 get_genelist <- function(x){
   if (nrow(x) < 1) return(NULL)
   geneList <- x$log2FoldChange
@@ -511,20 +513,24 @@ gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
 ```
 
 ```{r}
-# combine GSEA result and plot
-gse_dotplot <- function(result){
+# combine GSEA result
+gse_result <- function(result){
   name <- names(result)
   l <- lapply(seq_along(result), function(i){
     data.frame(result[[i]]) %>%
       mutate(comparison = name[[i]])
   })
-  df <- do.call("rbind", l) %>%
+  do.call("rbind", l) %>%
     separate(comparison, into = c("ratio","time"), extra = "drop") %>%
     mutate(ratio = factor(ratio, levels = c("less","equal","more"),
                           labels = c("1:1000","1:1","1000:1")),
            time = factor(time, levels = c("0h","4h","8h","24h")),
            type = ifelse(enrichmentScore >0, "activated", "suppressed")) 
-  ggplot(df, aes(time, Description, size = enrichmentScore, color= p.adjust)) +
+}
+
+# dotplot GSEA result
+gse_dotplot <- function(df){
+  ggplot(df, aes(time, Description, color = enrichmentScore)) +
     geom_point() +
     facet_grid(ratio ~ type, scales = "free_y") +
     labs(y="KEGG pathway")
@@ -533,11 +539,13 @@ gse_dotplot <- function(result){
 
 ```{r include=FALSE}
 ## GSEA dotplot of E. coli
-p1 <- gse_dotplot(gseKEGG_results.EC)
+df1 <- gse_result(gseKEGG_results.EC)
+p1 <- gse_dotplot(df1)
 p1 <- grid_panel(p1)
 
 ## GSEA dotplot of P. putida
-p2 <- gse_dotplot(gseKEGG_results.PP)
+df2 <- gse_result(gseKEGG_results.PP)
+p2 <- gse_dotplot(df2)
 p2 <- grid_panel(p2)
 ```
 
@@ -547,42 +555,80 @@ plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO")
 ```
 
 
-## Combine over 
+## Combine tree and GSEA result
+
+There are too many pathway identifided by GSEA KEGG.
+
+```{r}
+ecopath <- df1 %>% 
+  separate_rows(core_enrichment, sep = "/") %>%
+  dplyr::select(Description, core_enrichment) %>%
+  unique() %>%
+  mutate(value = 1) %>%
+  pivot_wider(id_cols = Description,
+              names_from = core_enrichment,
+              values_from = value,
+              values_fill = list(value = 0))
+
+library(vegan)
+matrix <- as.matrix(column_to_rownames(ecopath, var = "Description"))
+dist <- vegdist(matrix, method = "jaccard")
+
+library(ape)
+library(ggtree)
+tree <- bionj(dist)
+p <- ggtree(tree,branch.length = "none") + geom_tiplab() + 
+  xlim_tree(25)
+```
+
+```{r}
+d1 <- df1 %>%
+  dplyr::select(Description, setSize, enrichmentScore, ratio, time, type) %>%
+  rename(id = "Description") %>%
+  mutate(time = as.numeric(time))
+
+peco <- p + geom_facet(panel = "1:1000",
+               data=filter(d1, ratio == "1:1000"), 
+               geom=geom_point, 
+               mapping = aes(x=time,color=type,size=setSize)) +
+  geom_facet(panel = "1:1",
+             data=filter(d1, ratio == "1:1"), 
+             geom=geom_point, 
+             mapping = aes(x=time,color=type,size=setSize)) +
+  geom_facet(panel = "1000:1",
+             data=filter(d1, ratio == "1000:1"), 
+             geom=geom_point, 
+             mapping = aes(x=time,color=type,size=setSize)) 
+  
+peco
+# TODO: 调整 facet 的 width
+```
+
+
+```{r}
+ppupath <- df2 %>% 
+  separate_rows(core_enrichment, sep = "/") %>%
+  dplyr::select(Description, core_enrichment) %>%
+  unique() %>%
+  mutate(value = 1) %>%
+  pivot_wider(id_cols = Description,
+              names_from = core_enrichment,
+              values_from = value,
+              values_fill = list(value = 0))
+
+library(vegan)
+matrix <- as.matrix(column_to_rownames(ppupath, var = "Description"))
+dist <- vegdist(matrix)
+
+library(ape)
+library(ggtree)
+tree <- nj(dist)
+ggtree(tree) + geom_tiplab() + xlim(0,1)
+```
+
 
 ### GSEA KEGG dotplot
 
-获取GSEA KEGG结果中的数据框，以便统一绘图。
-
-```{r }
-# 计算gsea dotplot需要的数据框
-gsea_ck_df <- function(gsea_results = gsea_results){
-  gsea_dotplot_df <- vector("list",length = length(gsea_results))
-  
-  for (i in seq_along(gsea_results)){
-    df <- data.frame(gsea_results[[i]])
-    if (nrow(df)<1) {
-      gsea_dotplot_df[[i]] <- NULL
-    }
-    else{
-      df$comparison <- names(gsea_results[i])
-      df$GeneRatio <- (str_count(df$core_enrichment,"/") + 1) / df$setSize
-      gsea_dotplot_df[[i]] <- df
-    }
-    
-  }  
-  
-  return(gsea_dotplot_df)
-}
-```
-
-```{r }
-# df1 是 E. coli gseKEGG 结果的数据框
-df1 <- do.call("rbind",gsea_ck_df(gseKEGG_results.EC))
-
-# df2 是 P. putida gseKEGG 结果的数据框
-df2 <- do.call("rbind",gsea_ck_df(gseKEGG_results.PP))
-
-```
 
 使用 Kappa 对 GSEA 分析结果的条目进行语义分析和聚类。
 
@@ -593,7 +639,7 @@ calculate_kappa_matrix <- function(df){
   data <- df[,c("Description","core_enrichment")] %>% 
     separate_rows(.data$core_enrichment,sep="/")
   terms <- data$Description %>% unique() %>% sort()
-  genes <- data$core_enrichment %>% unique() 
+  genes <- data$core_enrichment %>% unique()
   nterms <- length(terms)
   ngenes <- length(genes)
   kappa <- matrix(0,nterms,nterms)
