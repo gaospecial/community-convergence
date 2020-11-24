@@ -2,7 +2,8 @@
 title: "Transcriptomic level adaptive capacity play roles in the deterministic assembly of a two species cocultures"
 author: "Chun-Hui Gao, Hui Cao, Peng Cai"
 date: "2020-11-16"
-output: bookdown::html_document2
+output: bookdown::html_document2:
+  toc: yes
 bibliography: references.bib
 ---
 
@@ -511,11 +512,12 @@ p2 <- grid_panel_autoheight(p2)
 plot_grid(p1,p2, rel_heights = c(1,0.4), ncol = 1, labels = "AUTO",align = "v")
 ```
 
-## Get set enrichment analysis (GSEA)
+## Get set enrichment analysis (GSEA) of gene expression profile
 
 GSEA use all genes' expressions, so we need to get a unfiltered gene expression data.
 
 ```{r}
+# load pre-calculated result
 gene_expression.EC <- readRDS("data/gene_expression.EC.rds")
 gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 ```
@@ -523,6 +525,7 @@ gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 
 
 ```{r gseKEGG-result-EC, warning=FALSE}
+# define a function to extract and prepare formatted data for GSEA
 get_genelist <- function(x){
   if (nrow(x) < 1) return(NULL)
   geneList <- x$log2FoldChange
@@ -545,7 +548,7 @@ gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
 ```
 
 ```{r}
-# combine GSEA result
+# combine and reform GSEA result to a data frame
 gse_result <- function(result){
   name <- names(result)
   l <- lapply(seq_along(result), function(i){
@@ -573,27 +576,37 @@ gse_dotplot <- function(df){
 ```{r include=FALSE}
 ## GSEA dotplot of E. coli
 df1 <- gse_result(gseKEGG_results.EC)
+eco_gsea_pathay <- kegg_path_tree(df1,
+                                  pathway_name = "Description",
+                                  gene_id = "core_enrichment")
 df1$Description <- factor(df1$Description,
-                          levels = kegg_path_tree(df1,
-                                                  pathway_name = "Description",
-                                                  gene_id = "core_enrichment"))
+                          levels = eco_gsea_pathay)
 p1 <- gse_dotplot(df1)
 
 ## GSEA dotplot of P. putida
 df2 <- gse_result(gseKEGG_results.PP)
+ppu_gsea_pathway <- kegg_path_tree(df2,
+                              pathway_name = "Description",
+                              gene_id = "core_enrichment")
 df2$Description <- factor(df2$Description,
-                          levels = kegg_path_tree(df2,
-                                                  pathway_name = "Description",
-                                                  gene_id = "core_enrichment"))
+                          levels = ppu_gsea_pathway)
 p2 <- gse_dotplot(df2)
 ```
 
+(ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
-```{r fig.asp=1.2}
+```{r gsea-dotplot, fig.asp=1.2, fig.cap="(ref:gsea-dotplot-figcap)"}
 plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO")
 ```
 
 
+### Overlap of GSEA pathway in *E. coli* and *P. putida*
+
+```{r}
+# todo
+ggVennDiagram(list(eco=eco_gsea_pathay, ppu=ppu_gsea_pathway))
+
+```
 
 
 
@@ -666,7 +679,7 @@ plot_grid(plotlist = volcano_plots.PP,labels = "AUTO",align = "hv")
 
 ```
 
-# pathway viewer
+## pathway viewer
 
 ```{r}
 library(pathview)
