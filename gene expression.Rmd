@@ -261,7 +261,7 @@ tableS1 <- read.xlsx("./data/tableS1.xlsx")
 summary(tableS1)
 ```
 
-Figure \@ref(fig:reads-count) shows the reads count of *E. coli* and *P. putida* in each RNA-seq library. Samples were taken with each condition at indicated times (at 0, 4, 8 and 24h). (A-D) *P. putida* monoculture samples; (E-H) *E. coli* and *P. putida* “1:1000” coculture; (I-L) the “1:1” coculture; (M-P) the “1000:1” coculture; and (Q-T) the *E. coli* monoculture samples. Each sample has three replicates. Only aligned reads to either *E. coli* or *P. putida* genome were used in this calculation. Plots showed the proportion of reads which have aligned to corresponding genome by different colors, as indicated on the top.
+Figure \@ref(fig:reads-count) shows the reads count of *E. coli* and *P. putida* in each RNA-seq library. Samples were taken with each condition at indicated times (at 0, 4, 8 and 24h). (A-D) *P. putida* monoculture samples; (E-H) *E. coli* and *P. putida* "1:1000" coculture; (I-L) the "1:1" coculture; (M-P) the "1000:1" coculture; and (Q-T) the *E. coli* monoculture samples. Each sample has three replicates. Only aligned reads to either *E. coli* or *P. putida* genome were used in this calculation. Plots showed the proportion of reads which have aligned to corresponding genome by different colors, as indicated on the top.
 
 ```{r reads-count, fig.asp=1.5,width=4.5, fig.cap="Reads count of *E. coli* and *P. putida* in each RNA-seq library"}
 ht_counts <- readRDS(file = "./data/ht_counts.rds")
@@ -297,7 +297,6 @@ plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights
 
 This step is a time consuming step. Use the precalculated DEG if possible.
 
-
 ```{r}
 # load precalculated DEG results.
 dds.EC <- readRDS("data/dds.EC.2.rds")
@@ -323,8 +322,7 @@ list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
 
 ```
 
-The results showed that the gene expression profiles were different between monoculture and cocultures in the beginning, and became more consistent in the later (Fig. \@ref(fig:RNA-seq-PCA)A). Differences in gene expression appeared immediately after mixing of *E. coli* and *P. putida*, which has been described by 0h data (due to the time required for manual operation, this is of course not the real 0h). The expression profiles (0h) of *E. coli* monoculture, “1:1” and “1000:1” cocultures are close, but the “1:1000” coculture is distinct from the others. At 4h and 8h, we can still visually separate the “less” samples and the others on the plots. However, the expression profiles of *E. coli* became closer by time. After 24h cultivation, there was no obvious boundary between *E. coli* monoculture and three cocultures. Likewise, the expression profiles of *P. putida* has a similar pattern, except that the distance between “1000:1” coculture and other three samples was more obvious (Fig. \@ref(fig:RNA-seq-PCA)B). 
-
+The results showed that the gene expression profiles were different between monoculture and cocultures in the beginning, and became more consistent in the later (Fig. \@ref(fig:RNA-seq-PCA)A). Differences in gene expression appeared immediately after mixing of *E. coli* and *P. putida*, which has been described by 0h data (due to the time required for manual operation, this is of course not the real 0h). The expression profiles (0h) of *E. coli* monoculture, "1:1" and "1000:1" cocultures are close, but the "1:1000" coculture is distinct from the others. At 4h and 8h, we can still visually separate the "less" samples and the others on the plots. However, the expression profiles of *E. coli* became closer by time. After 24h cultivation, there was no obvious boundary between *E. coli* monoculture and three cocultures. Likewise, the expression profiles of *P. putida* has a similar pattern, except that the distance between "1000:1" coculture and other three samples was more obvious (Fig. \@ref(fig:RNA-seq-PCA)B).
 
 ```{r RNA-seq-PCA, fig.width=10,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
@@ -341,6 +339,7 @@ plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
 # export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
 
 ```
+
 ### Count of DEGs
 
 Figure \@ref(fig:count-of-deg) shows the Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
@@ -481,14 +480,13 @@ kegg_path_tree <- function(df, pathway_name, gene_id, sep="/"){
   library(ape)
   library(ggtree)
   tree <- bionj(dist)
-  p <- ggtree(tree,branch.length = "none") 
+  p <- ggtree(tree,branch.length = "none")
   p$data %>%
     filter(isTip) %>%
     arrange(y) %>%
     pull(label)
 }
 ```
-
 
 ```{r include=FALSE}
 ## KEGG enrichment in E. coli
@@ -524,15 +522,14 @@ plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
 
 ## Get set enrichment analysis (GSEA) of gene expression profile
 
-GSEA use all genes' expressions, so we need to get a unfiltered gene expression data.
+Enrichment analysis of DEGs is a common approach in analyzing gene expression profiles. This approach will find genes where the difference is large, but it will not detect a situation where the difference is small, but evidenced in coordinated way in a set of related genes. Gene Set Enrichment Analysis (GSEA) [@subramanianGeneSetEnrichment2005] directly addresses this limitation. All genes can be used in GSEA; GSEA aggregates the per gene statistics across genes within a gene set, therefore making it possible to detect situations where all genes in a predefined set change in a small but coordinated way. Since it is likely that many relevant phenotypic differences are manifested by small but consistent changes in a set of genes.
+
 
 ```{r}
 # load pre-calculated result
 gene_expression.EC <- readRDS("data/gene_expression.EC.rds")
 gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 ```
-
-
 
 ```{r gseKEGG-result-EC, warning=FALSE}
 # define a function to extract and prepare formatted data for GSEA
@@ -609,19 +606,20 @@ p2 <- gse_dotplot(df2)
 plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO")
 ```
 
+Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) and *P. putida* (B).
 
 ### Overlap of GSEA pathway in *E. coli* and *P. putida*
 
 ```{r}
 # todo
-ggVennDiagram(list(eco=eco_gsea_pathay, ppu=ppu_gsea_pathway))
+merged_gsea <- rbind(mutate(df1, organism = "eco"), mutate(df2, organism = "ppu"))
+merged_gsea <- merged_gsea %>% group_by(organism, type) %>% nest()
+merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description))
+l <- merged_gsea$pathway
+names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
+ggVennDiagram(l,label = "count")
 
 ```
-
-
-
-
-
 
 ## 带标记的火山图
 
