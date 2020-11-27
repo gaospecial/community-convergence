@@ -544,13 +544,13 @@ get_genelist <- function(x){
 ### *E. coli* GSEA KEGG result
 gseKEGG_results.EC <- lapply(gene_expression.EC, function(x){
   geneList <- get_genelist(x)
-  tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
+  tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 10),error=function(e) NULL)
 })
 
 ### *P. putida* GSEA KEGG result
 gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
   geneList <- get_genelist(x)
-  tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 30),error=function(e) NULL)
+  tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 10),error=function(e) NULL)
 })
 ```
 
@@ -615,91 +615,16 @@ Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) 
 merged_gsea <- rbind(mutate(df1, organism = "eco"), mutate(df2, organism = "ppu"))
 merged_gsea <- merged_gsea %>% group_by(organism, type) %>% nest()
 merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description))
+
+```
+
+
+Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E. coli* and *P. putida*. There are 
+
+(ref:gsea-overlap-vennplot-figcap) Overlap of GSEA pathway in *E. coli* and *P. putida*. Pathways were distinguished by their descriptions, and separated to activated and suppressed ones. 
+
+```{r gsea-overlap-vennplot, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
 l <- merged_gsea$pathway
 names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
 ggVennDiagram(l,label = "count")
-
-```
-
-## 带标记的火山图
-
-```{r}
-library(DESeq2)
-library(tidyverse)
-
-
-enriched_genes.EC <- lapply(gseKEGG_results.EC,function(x){
-  # separate_rows(data.frame(x),"core_enrichment",sep="/")
-  df <- data.frame(x)
-  if (nrow(df) > 0) {
-    separate_rows(df,"core_enrichment",sep="/") %>%
-      rename(gene ="core_enrichment")
-  }
-  else{
-    return(NULL)
-  }
-})
-```
-
-```{r fig.width=8,fig.asp=1}
-idx <- 1:4
-pathways <- unique(do.call("rbind",enriched_genes.EC[idx])$Description)
-# color value
-color_values <- ggsci::pal_npg("nrc")(length(pathways))
-names(color_values) <- pathways
-volcano_plots.EC <- lapply(idx, function(i){
-  result.raw <- gene_expression.EC[[i]]
-  result <- DEG_results.EC[[i]]
-  genes <- enriched_genes.EC[[i]]
-ggplot() + aes(log2FoldChange,-log10(padj)) +
-    geom_point(data = result.raw,color="grey") +
-    geom_point(data = result, color="black") +
-    geom_point(data=left_join(genes,result),mapping = aes(color=Description)) +
-    scale_color_manual(values = color_values) +  
-    xlab("Log2Foldchange")+
-    theme(legend.position = c(0.01,0.99),
-          legend.justification = c(0,1),
-          legend.title = element_blank(),
-          legend.background = element_blank(),
-          legend.box.background = element_rect(color = "grey",fill = NA))
-  
-})
-plot_grid(plotlist = volcano_plots.EC,labels = "AUTO",align = "hv")
-# ggsave("figure 5.tiff",path="figures")
-
-```
-
-*P. putida*中没有enriched pathway，只能绘制一个黑白配的火山图。
-
-```{r fig.width=8,fig.asp=1}
-# PP in "more" coculture, time 0, 4, 8h
-idx <- 9:11
-volcano_plots.PP <- lapply(idx, function(i){
-  result.raw <- gene_expression.PP[[i]]
-  result <- DEG_results.PP[[i]]
-  ggplot() + aes(log2FoldChange,-log10(padj)) +
-    geom_point(data = result.raw,color="grey") +
-    geom_point(data = result, color="black") +
-     xlab("Log2Foldchange")
-})
-plot_grid(plotlist = volcano_plots.PP,labels = "AUTO",align = "hv")
-# ggsave("figure S4.tiff",path="figures")
-
-```
-
-## pathway viewer
-
-```{r}
-library(pathview)
-pathway_ids.EC <- df1$ID
-pathway_geneList_names.EC <- df1$core_enrichment
-for (i in seq_along(pathway_ids.EC[1:3])){
-  idx <- pathway_geneList_names.EC[[i]]
-  pathview(gene.data = pathway_geneList_names.EC[[i]],
-           pathway.id = pathway_ids.EC[[i]],
-           species="eco",
-           gene.idtype = "kegg",
-           kegg.native = T)
-
-}
 ```
