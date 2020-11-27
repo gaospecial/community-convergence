@@ -8,8 +8,13 @@ bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(fig.width = 8,fig.asp=0.618,message = F,dpi = 300)
+knitr::opts_chunk$set(echo = TRUE,
+                      include = FALSE)
+knitr::opts_chunk$set(fig.width = 8,
+                      out.width = "75%",
+                      fig.asp=0.618,
+                      message = F,
+                      dpi = 300)
 
 # 作图
 library(tidyverse)
@@ -40,6 +45,8 @@ source("./functions/ggplot_smooth_func.R")
 -   time: sample time.
 -   species: species name. In cocultures, the quantity was related to two species, respectively.
 -   quantity: the quantity of species, as calculated from the qPCR CT value and standard curves.
+
+For example:
 
 ```{r qPCR-data}
 qPCR_data <- read.csv("data/qPCR-data.csv")
@@ -290,9 +297,9 @@ plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights
 
 This step is a time consuming step. Use the precalculated DEG if possible.
 
-load precalculated DEG results.
 
 ```{r}
+# load precalculated DEG results.
 dds.EC <- readRDS("data/dds.EC.2.rds")
 dds.PP <- readRDS("data/dds.PP.2.rds")
 DEG_results.EC <- readRDS("data/DEG_results.EC.rds")
@@ -300,6 +307,8 @@ DEG_results.PP <- readRDS("data/DEG_results.PP.rds")
 ```
 
 ### RNA-seq clustering
+
+First of all, we compared the gene expression profiles between monoculture and cocultures at genome level. Figure \@ref(fig:RNA-seq-PCA) shows the Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples.
 
 ```{r}
 list_of_vsd <- lapply(list(dds.EC,dds.PP),function(dds){
@@ -313,6 +322,9 @@ list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
                         labels = c("P. putida","1:1000","1:1","1000:1","E. coli"))
 
 ```
+
+The results showed that the gene expression profiles were different between monoculture and cocultures in the beginning, and became more consistent in the later (Fig. \@ref(fig:RNA-seq-PCA)A). Differences in gene expression appeared immediately after mixing of *E. coli* and *P. putida*, which has been described by 0h data (due to the time required for manual operation, this is of course not the real 0h). The expression profiles (0h) of *E. coli* monoculture, “1:1” and “1000:1” cocultures are close, but the “1:1000” coculture is distinct from the others. At 4h and 8h, we can still visually separate the “less” samples and the others on the plots. However, the expression profiles of *E. coli* became closer by time. After 24h cultivation, there was no obvious boundary between *E. coli* monoculture and three cocultures. Likewise, the expression profiles of *P. putida* has a similar pattern, except that the distance between “1000:1” coculture and other three samples was more obvious (Fig. \@ref(fig:RNA-seq-PCA)B). 
+
 
 ```{r RNA-seq-PCA, fig.width=10,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
@@ -382,7 +394,7 @@ plot_grid(plotlist = plots,labels = "AUTO",ncol = 1)
 
 Figure \@ref(fig:deg-venn) shows the comparision of differentially expressed genes by time in *E. coli* (A-C) and *P. putida* (D-F). Although DEGs overlapped for different time, specific genes are the majority in almost every time point. For instance, 57 out of 93 DEGs are specific in 1:1000 coculture in *E. coli* (Fig. \@ref(fig:deg-venn)A).
 
-```{r deg-venn, fig.width=8, fig.cap="Comparision of differentially expressed genes by time"}
+```{r deg-venn, fig.width=10, fig.cap="Comparision of differentially expressed genes by time"}
 library(ggVennDiagram)
 
 ratio0 <- c("1:1000","1:1","1000:1")
@@ -418,17 +430,15 @@ plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
 We use `clusterProfiler` to perform KEGG enrichment analysis.
 
 ```{r}
-ck_plot <- function(ck){
+ck_plot <- function(ck, 
+                    mapping = aes(time, Description, size = GeneRatio)){
   df <- data.frame(ck) %>%
     mutate(ratio = factor(ratio, levels = c("less","equal","more"),
                           labels = c("1:1000","1:1","1000:1")),
-           time = factor(time, levels = c("0h","4h","8h","24h")),
-           expression = factor(expression, 
-                               levels = c("up","dn"),
-                               labels = c("up-regulated", "down-regulated"))) 
+           time = factor(time, levels = c("0h","4h","8h","24h"))) 
   df$Description <- factor(df$Description, levels = kegg_path_tree(df,pathway_name = "Description", gene_id = "geneID"))
   df$GeneRatio <- sapply(df$GeneRatio, function(x) eval(parse(text = x)))
-  ggplot(df, aes(time, Description, size = GeneRatio,color=expression)) +
+  ggplot(df, mapping = mapping) +
     geom_point() +
     facet_grid(~ ratio, scales = "free_y") +
     labs(y="KEGG pathway")
@@ -485,7 +495,7 @@ kegg_path_tree <- function(df, pathway_name, gene_id, sep="/"){
 deg1 <- do.call("rbind", DEG_results.EC) %>% 
   separate(comparison, into = c("ratio","time"), extra = "drop")
 
-ck1 <- compareCluster(gene ~ ratio + time + expression, 
+ck1 <- compareCluster(gene ~ ratio + time, 
                       data = deg1, 
                       fun = "enrichKEGG", 
                       organism = "eco") 
@@ -497,7 +507,7 @@ p1 <- grid_panel_autoheight(p1)
 deg2 <- do.call("rbind", DEG_results.PP) %>% 
   separate(comparison, into = c("ratio","time"), extra = "drop")
 
-ck2 <- compareCluster(gene ~ ratio + time + expression, 
+ck2 <- compareCluster(gene ~ ratio + time, 
                       data = deg2, 
                       fun = "enrichKEGG", 
                       organism = "ppu") 
@@ -508,8 +518,8 @@ p2 <- grid_panel_autoheight(p2)
 
 (ref:kegg-ora-cap) A dot plot shows the KEGG enrichment result of *E. coli* (A) and *P. putida* (B) in the three coculture as a function of time.
 
-```{r kegg-ora, fig.width=8, fig.asp=1.2, fig.cap="(ref:kegg-ora-cap) "}
-plot_grid(p1,p2, rel_heights = c(1,0.4), ncol = 1, labels = "AUTO",align = "v")
+```{r kegg-ora, fig.width=8, fig.asp=1.1, fig.cap="(ref:kegg-ora-cap) "}
+plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
 ```
 
 ## Get set enrichment analysis (GSEA) of gene expression profile
