@@ -13,7 +13,7 @@ bibliography: references.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
-                      include = FALSE)
+                      include = TRUE)
 knitr::opts_chunk$set(fig.width = 8,
                       out.width = "75%",
                       fig.asp=0.618,
