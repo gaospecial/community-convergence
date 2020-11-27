@@ -2,8 +2,12 @@
 title: "Transcriptomic level adaptive capacity play roles in the deterministic assembly of a two species cocultures"
 author: "Chun-Hui Gao, Hui Cao, Peng Cai"
 date: "2020-11-16"
-output: bookdown::html_document2:
-  toc: yes
+output: 
+  bookdown::html_document2:
+    toc: yes
+    number_sections: no
+    toc_float: yes
+    toc_depth: 3
 bibliography: references.bib
 ---
 
