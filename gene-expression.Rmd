@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE,
 knitr::opts_chunk$set(fig.width = 8,
                       out.width = "75%",
                       fig.asp=0.618,
+                      fig.align = "center",
                       message = F,
                       dpi = 300)
 
@@ -159,7 +160,9 @@ ratio <- qPCR_data %>%
 
 Figure \@ref(fig:ratio-change) shows the deterministic assembly of *E. coli* and *P. putida* cocultures. (A) the real-time ratio of EC: PP after 0, 0.5, 1, 2, 4, 8 and 24 h cultivation. (B) Analysis of the variances of EC/PP ratios (24h) between cocultures.
 
-```{r ratio-change, fig.width=6, fig.asp=0.618}
+(ref:ratio-change-figcap) Deterministic assembly of *E. coli* and *P. putida* cocultures. (A) the real-time ratio of EC: PP after 0, 0.5, 1, 2, 4, 8 and 24 h cultivation. (B) Analysis of the variances of EC/PP ratios (24h) between cocultures.
+
+```{r ratio-change, fig.width=6, fig.asp=0.618, fig.cap="(ref:ratio-change-figcap)"}
 ratio.sum <- ratio %>% 
   group_by(sample) %>%
   mutate(y=mean(ratio,na.rm=TRUE),std=sd(ratio,na.rm=TRUE)) %>% 
@@ -606,8 +609,8 @@ p2 <- gse_dotplot(df2)
 
 (ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
-```{r gsea-dotplot, fig.asp=1.2, fig.cap="(ref:gsea-dotplot-figcap)"}
-plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO")
+```{r gsea-dotplot, fig.asp=1.5, fig.cap="(ref:gsea-dotplot-figcap)"}
+plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
 ```
 
 Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) and *P. putida* (B).
@@ -618,7 +621,7 @@ Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) 
 # todo
 merged_gsea <- rbind(mutate(df1, organism = "eco"), mutate(df2, organism = "ppu"))
 merged_gsea <- merged_gsea %>% group_by(organism, type) %>% nest()
-merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description))
+merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description) %>% as.character())
 
 ```
 
@@ -627,8 +630,16 @@ Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E.
 
 (ref:gsea-overlap-vennplot-figcap) Overlap of GSEA pathway in *E. coli* and *P. putida*. Pathways were distinguished by their descriptions, and separated to activated and suppressed ones. 
 
-```{r gsea-overlap-vennplot, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
+```{r gsea-overlap-vennplot, fig.asp=1, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
 l <- merged_gsea$pathway
 names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
-ggVennDiagram(l,label = "count")
+p1 <- ggVennDiagram(l,label = "count")
+
+l2 <- list(eco=c(l[[1]],l[[2]]), ppu=c(l[[3]],l[[4]]))
+p2 <- ggVennDiagram(l2, label = "count")
+
+l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
+p3 <- ggVennDiagram(l3, label = "count")
+
+plot_grid(p1,plot_grid(p2,p3,ncol = 2,labels = c("B","C")),labels = c("A",""),ncol = 1,rel_heights = c(2,1))
 ```
