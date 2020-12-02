@@ -1,7 +1,7 @@
 ---
 title: "Transcriptomic level adaptive capacity play roles in the deterministic assembly of a two species cocultures"
 author: "Chun-Hui Gao, Hui Cao, Peng Cai"
-date: "2020-11-16"
+date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
     toc: yes
@@ -20,6 +20,9 @@ knitr::opts_chunk$set(fig.width = 8,
                       fig.align = "center",
                       message = F,
                       dpi = 300)
+
+save_figure_to_ppt <- TRUE
+save_tiff <- TRUE
 
 # 作图
 library(tidyverse)
@@ -107,8 +110,8 @@ growth_curves <- lapply(growth_curves, function(p){
 
 # show plot
 plot_grid(plotlist = growth_curves,ncol=2,labels = "AUTO")
-# ggsave("figure 1.tiff",path="figures")
-# export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 1.tiff",path="figures")
+if(save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
 ```
 
@@ -139,6 +142,9 @@ plots <- lapply(seq_along(ref_group), function(i){
 })
 plots <- unlist(plots,recursive = F)
 plot_grid(plotlist = plots,ncol=5,labels = "AUTO")
+
+if(save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S1.tiff",path="figures")
 
 ```
 
@@ -202,8 +208,8 @@ plot_ratio_stats <- ggplot(ratio_24h,aes(condition,ratio,color=condition)) +
       ))
 
 plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
-# ggsave("figure 2.tiff",path="figures")
-# export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 2.tiff",path="figures")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
 Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)).
@@ -254,6 +260,8 @@ plots <- lapply(seq_along(pvalues), function(i){
   mtext(LETTERS[[i]], side = side, line = line, cex = cex, adj = adj)
 
 })
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S2.tiff",path="figures")
 
 ```
 
@@ -270,7 +278,7 @@ summary(tableS1)
 
 Figure \@ref(fig:reads-count) shows the reads count of *E. coli* and *P. putida* in each RNA-seq library. Samples were taken with each condition at indicated times (at 0, 4, 8 and 24h). (A-D) *P. putida* monoculture samples; (E-H) *E. coli* and *P. putida* "1:1000" coculture; (I-L) the "1:1" coculture; (M-P) the "1000:1" coculture; and (Q-T) the *E. coli* monoculture samples. Each sample has three replicates. Only aligned reads to either *E. coli* or *P. putida* genome were used in this calculation. Plots showed the proportion of reads which have aligned to corresponding genome by different colors, as indicated on the top.
 
-```{r reads-count, fig.asp=1.5,width=4.5, fig.cap="Reads count of *E. coli* and *P. putida* in each RNA-seq library"}
+```{r reads-count, fig.asp=1.5,width=6, fig.cap="Reads count of *E. coli* and *P. putida* in each RNA-seq library"}
 ht_counts <- readRDS(file = "./data/ht_counts.rds")
 ht_counts$group <- factor(ht_counts$group,
                           levels = c("none_0h","none_4h","none_8h","none_24h","less_0h","less_4h","less_8h","less_24h","equal_0h","equal_4h","equal_8h","equal_24h","more_0h","more_4h","more_8h","more_24h","all_0h","all_4h","all_8h","all_24h"),
@@ -295,8 +303,8 @@ plots <- lapply(1:length(samples),function(i){
 })
 legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
 plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
-# ggsave("figure S3.tiff",path="figures")
-# export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S3.tiff",path="figures")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
 ```
 
@@ -342,8 +350,9 @@ list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   })
 
 plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
-# ggsave("figure 3.tiff",path="figures")
-# export::graph2ppt(x=plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1),file="PCA.pptx",width=6,height=4)
+if (save_tiff) ggsave("figure 3.tiff",path="figures")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+
 
 ```
 
@@ -392,8 +401,8 @@ plots <- lapply(seq_along(count), function(i){
 
 
 plot_grid(plotlist = plots,labels = "AUTO",ncol = 1)
-# ggsave("figure 4.tiff", path="figures")
-# export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 4.tiff",path="figures")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
 ### Specific DEGs in *E. coli* and *P. putida*
@@ -428,7 +437,9 @@ deg_Venn_plot_PP <- lapply(seq_along(ratio0), function(i){
 
 plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
           labels = "AUTO")
-# ggsave("figure S9.tiff",path="figures")
+if (save_tiff) ggsave("figure S4.tiff",path="figures")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+
 ```
 
 ## Enrichment analysis of DEGs
@@ -525,6 +536,9 @@ p2 <- grid_panel_autoheight(p2)
 
 ```{r kegg-ora, fig.width=8, fig.asp=1.1, fig.cap="(ref:kegg-ora-cap) "}
 plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S5.tiff",path="figures")
+
 ```
 
 ## Get set enrichment analysis (GSEA) of gene expression profile
@@ -609,9 +623,11 @@ p2 <- gse_dotplot(df2)
 
 (ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
-```{r gsea-dotplot, fig.asp=1.5, fig.cap="(ref:gsea-dotplot-figcap)"}
+```{r gsea-dotplot, fig.asp=1.5, fig.width = 10, fig.cap="(ref:gsea-dotplot-figcap)"}
 plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
+if (save_tiff) ggsave("figure 5.tiff",path="figures")
 ```
+
 
 Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) and *P. putida* (B).
 
@@ -626,7 +642,7 @@ merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description)
 ```
 
 
-Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E. coli* and *P. putida*. There are 
+Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E. coli* and *P. putida*. 
 
 (ref:gsea-overlap-vennplot-figcap) Overlap of GSEA pathway in *E. coli* and *P. putida*. Pathways were distinguished by their descriptions, and separated to activated and suppressed ones. 
 
@@ -642,4 +658,8 @@ l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
 p3 <- ggVennDiagram(l3, label = "count")
 
 plot_grid(p1,plot_grid(p2,p3,ncol = 2,labels = c("B","C")),labels = c("A",""),ncol = 1,rel_heights = c(2,1))
+
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 6.tiff",path="figures")
+
 ```
