@@ -21,8 +21,8 @@ knitr::opts_chunk$set(fig.width = 8,
                       message = F,
                       dpi = 300)
 
-save_figure_to_ppt <- TRUE
-save_tiff <- TRUE
+save_figure_to_ppt <- F
+save_tiff <- F
 
 # 作图
 library(tidyverse)
@@ -657,9 +657,20 @@ p2 <- ggVennDiagram(l2, label = "count")
 l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
 p3 <- ggVennDiagram(l3, label = "count")
 
-plot_grid(p1,plot_grid(p2,p3,ncol = 2,labels = c("B","C")),labels = c("A",""),ncol = 1,rel_heights = c(2,1))
+plot_grid(plot_grid(p2,p3,ncol = 2,labels = c("A","B")),p1,labels = c("","C"),ncol = 1,rel_heights = c(.5,1))
 
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 if (save_tiff) ggsave("figure 6.tiff",path="figures")
 
 ```
+
+View intersect in Venn diagram interactively (Figure \@ref(fig:overlap-plotly)).
+
+```{r overlap-plotly, warning=FALSE, out.width="100%", fig.cap="Venn plot"}
+p <- ggVennDiagram(l, label = NULL, show_intersect = TRUE)
+plotly::ggplotly(p)
+```
+
+## Reference
+
+
