@@ -38,9 +38,6 @@ library(openxlsx)
 library(clusterProfiler)
 theme_set(theme_bw())
 
-# load user defined functions
-source("./functions/functions.R")
-source("./functions/ggplot_smooth_func.R")
  
 ```
 
@@ -339,6 +336,53 @@ list_of_vsd[[2]]$ratio0 <- factor(list_of_vsd[[2]]$ratio0,
 
 The results showed that the gene expression profiles were different between monoculture and cocultures in the beginning, and became more consistent in the later (Fig. \@ref(fig:RNA-seq-PCA)A). Differences in gene expression appeared immediately after mixing of *E. coli* and *P. putida*, which has been described by 0h data (due to the time required for manual operation, this is of course not the real 0h). The expression profiles (0h) of *E. coli* monoculture, "1:1" and "1000:1" cocultures are close, but the "1:1000" coculture is distinct from the others. At 4h and 8h, we can still visually separate the "less" samples and the others on the plots. However, the expression profiles of *E. coli* became closer by time. After 24h cultivation, there was no obvious boundary between *E. coli* monoculture and three cocultures. Likewise, the expression profiles of *P. putida* has a similar pattern, except that the distance between "1000:1" coculture and other three samples was more obvious (Fig. \@ref(fig:RNA-seq-PCA)B).
 
+```{r}
+myPlotPCA <- function(object,
+                      intgroup = c("time","ratio0"), 
+                      show.label = FALSE,
+                      return_data = FALSE) {
+  require(dplyr,quietly = T)
+  require(DESeq2,quietly = T)
+  require(vegan,quietly = T)
+  pca <- rda(t(assay(object))) 
+  
+  percent_var <- pca$CA$eig/pca$tot.chi  
+  
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+  intgroup_df <- as.data.frame(colData(object)[, intgroup, 
+                                               drop = FALSE]) %>%
+    tibble::rownames_to_column(var = "sample_id")
+  
+  df <- scores(pca)$sites %>% 
+    as.data.frame() %>%
+    tibble::rownames_to_column(var="sample_id") %>%
+    left_join(intgroup_df,by="sample_id") %>% 
+    mutate(time=factor(time,levels = sort(unique(as.numeric(time)))))
+  
+  if (return_data){
+    attr(df, "percentvar") <- percent_var
+    return(df)
+  } 
+  
+  mapping <- aes(PC1, PC2, color=ratio0, label=sample_id)
+  
+  p <- ggplot(df,mapping) +
+    geom_point(size=2)  +
+    xlab(paste0("PC1: ", round(percent_var[1] * 100), "% variance")) + 
+    ylab(paste0("PC2: ", round(percent_var[2] * 100), "% variance"))
+  
+  if (show.label) {
+    return(p + geom_text_repel(show.legend = F))
+  } else {
+    return(p)
+  }
+  
+}
+```
+
+
 ```{r RNA-seq-PCA, fig.width=10,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   myPlotPCA(vsd) + 
@@ -483,8 +527,8 @@ reset_facet_width <- function(p, rel_width = c(1)){
 
 kegg_path_tree <- function(df, pathway_name, gene_id, sep="/"){
   pathway <- df %>% 
-    separate_rows(gene_id, sep = sep) %>%
-    dplyr::select(c(pathway_name, gene_id)) %>%
+    separate_rows(all_of(gene_id), sep = sep) %>%
+    dplyr::select(all_of(c(pathway_name, gene_id))) %>%
     unique() %>%
     mutate(value = 1) %>%
     pivot_wider(id_cols = pathway_name,
