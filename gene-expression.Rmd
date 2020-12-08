@@ -20,7 +20,7 @@ knitr::opts_chunk$set(fig.width = 8,
                       fig.align = "center",
                       message = F)
 
-save_figure_to_ppt <- F
+save_figure_to_ppt <- T
 save_tiff <- T
 
 # 作图
@@ -139,7 +139,7 @@ plots <- lapply(seq_along(ref_group), function(i){
 plots <- unlist(plots,recursive = F)
 plot_grid(plotlist = plots,ncol=5,labels = "AUTO")
 
-if(save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 if (save_tiff) ggsave("figure S1.tiff",path="figures")
 
 ```
