@@ -514,7 +514,8 @@ deg1 <- do.call("rbind", DEG_results.EC) %>%
 ck1 <- compareCluster(gene ~ ratio + time, 
                       data = deg1, 
                       fun = "enrichKEGG", 
-                      organism = "eco") 
+                      organism = "eco",
+                      use_internal_data = TRUE) 
 
 p1 <- ck_plot(ck1)
 p1 <- grid_panel_autoheight(p1)
@@ -526,7 +527,8 @@ deg2 <- do.call("rbind", DEG_results.PP) %>%
 ck2 <- compareCluster(gene ~ ratio + time, 
                       data = deg2, 
                       fun = "enrichKEGG", 
-                      organism = "ppu") 
+                      organism = "ppu",
+                      use_internal_data = TRUE) 
 
 p2 <- ck_plot(ck2)
 p2 <- grid_panel_autoheight(p2)
@@ -565,13 +567,23 @@ get_genelist <- function(x){
 ### *E. coli* GSEA KEGG result
 gseKEGG_results.EC <- lapply(gene_expression.EC, function(x){
   geneList <- get_genelist(x)
-  tryCatch(gseKEGG(geneList, organism = "eco",nPerm = 10000,minGSSize = 10),error=function(e) NULL)
+  tryCatch(gseKEGG(geneList, 
+                   organism = "eco",
+                   nPerm = 10000,
+                   minGSSize = 10,
+                   use_internal_data = TRUE),
+           error=function(e) NULL)
 })
 
 ### *P. putida* GSEA KEGG result
 gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
   geneList <- get_genelist(x)
-  tryCatch(gseKEGG(geneList, organism = "ppu",nPerm = 10000,minGSSize = 10),error=function(e) NULL)
+  tryCatch(gseKEGG(geneList, 
+                   organism = "ppu",
+                   nPerm = 10000,
+                   minGSSize = 10,
+                   use_internal_data = TRUE),
+           error=function(e) NULL)
 })
 ```
 
