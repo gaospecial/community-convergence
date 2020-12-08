@@ -18,11 +18,10 @@ knitr::opts_chunk$set(fig.width = 8,
                       out.width = "75%",
                       fig.asp=0.618,
                       fig.align = "center",
-                      message = F,
-                      dpi = 300)
+                      message = F)
 
 save_figure_to_ppt <- F
-save_tiff <- F
+save_tiff <- T
 
 # 作图
 library(tidyverse)
@@ -705,7 +704,8 @@ Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E.
 ```{r gsea-overlap-vennplot, fig.asp=1, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
 l <- merged_gsea$pathway
 names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
-p1 <- ggVennDiagram(l,label = "count")
+p1 <- ggVennDiagram(l,label = "count") +
+  scale_x_continuous(expand = c(0.1,0.1))
 
 l2 <- list(eco=c(l[[1]],l[[2]]), ppu=c(l[[3]],l[[4]]))
 p2 <- ggVennDiagram(l2, label = "count")
