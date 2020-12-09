@@ -59,7 +59,26 @@ write.csv(qPCR_data, file = "data/qPCR-data.csv",row.names = FALSE)
 ```{r deseq}
 ht_counts <- readRDS("data/rna/ht_counts.rds")
 library(DESeq2)
-source("./functions/functions.R")
+
+myDESeqMatrix <- function(ht_counts=ht_counts, org=NULL) {
+  require(dplyr)
+  require(tidyr)
+  require(tibble)
+  # 过滤和创建 matrix
+  if (!is.null(org)){
+    ht_counts <- ht_counts %>% filter(organism==org) %>%
+      filter(ratio0 != ifelse(org=="EC","none","all"))
+  }
+  
+  count_data <- ht_counts %>% dplyr::select(gene,count,sample_id) %>%
+    group_by(sample_id) %>%
+    spread(sample_id,count) %>% 
+    as.data.frame() %>%
+    column_to_rownames(var = "gene")
+  col_data <- ht_counts %>% dplyr::select(sample_id,ratio0,time,group) %>% 
+    arrange(sample_id) %>% distinct()
+  return(list("count_data"=count_data,"col_data"=col_data))
+}
 
 mat.EC <- myDESeqMatrix(ht_counts,org = "EC")
 mat.PP <- myDESeqMatrix(ht_counts,org = "PP")
@@ -116,12 +135,3 @@ saveRDS(gene_expression.EC, "data/gene_expression.EC.rds")
 saveRDS(gene_expression.PP, "data/gene_expression.PP.rds")
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
