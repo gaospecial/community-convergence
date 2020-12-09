@@ -1,5 +1,5 @@
 ---
-title: "原始数据处理"
+title: "raw data process"
 output: github_document
 ---
 
@@ -7,7 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 生长曲线数据处理
+## growth curve data
 
 ```{r}
 ## read qPCR raw data
@@ -31,12 +31,12 @@ results <- results %>%
   dplyr::rename(sample=`Sample Name`,species=`Target Name`) %>%
   left_join(meta,by="sample")
 
-## remove unspecific 
+## remove unspecific control
 results <- results %>%
   filter(!(condition=="all" & species=="PP")) %>%
   filter(!(condition=="none" & species=="EC"))
 
-## 计算定量数据
+## quantify
 cal_quantity <- function(ct){10^(-.2922*ct+12.077)}
 results <- results %>% mutate(quantity=cal_quantity(CT)*dilution) %>%
   filter(quantity > 1e5)
@@ -52,9 +52,9 @@ write.csv(qPCR_data, file = "data/qPCR-data.csv",row.names = FALSE)
 
 ## RNA-seq
 
-### 鉴定差异表达基因
+### Identifing differentially expressed genes
 
-从 ht-seq counts 结果出发。
+Start from ht-seq counts.
 
 ```{r deseq}
 ht_counts <- readRDS("data/rna/ht_counts.rds")
@@ -64,7 +64,7 @@ myDESeqMatrix <- function(ht_counts=ht_counts, org=NULL) {
   require(dplyr)
   require(tidyr)
   require(tibble)
-  # 过滤和创建 matrix
+
   if (!is.null(org)){
     ht_counts <- ht_counts %>% filter(organism==org) %>%
       filter(ratio0 != ifelse(org=="EC","none","all"))
@@ -91,7 +91,7 @@ dds.PP <- DESeqDataSetFromMatrix(countData = mat.PP$count_data,
                                  design    = ~ group)
 
 # run DESeq()
-dds.EC <- DESeq(dds.EC)  # this step is time consuming  标准化
+dds.EC <- DESeq(dds.EC)  # this step is time consuming, normalization
 dds.PP <- DESeq(dds.PP)
 
 # get deg
