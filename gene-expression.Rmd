@@ -582,7 +582,7 @@ p2 <- grid_panel_autoheight(p2)
 ```{r kegg-ora, fig.width=8, fig.asp=1.1, fig.cap="(ref:kegg-ora-cap) "}
 plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure S5.tiff",path="figures", compression = "lzw")
+if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
 
 ```
 
@@ -678,9 +678,9 @@ p2 <- gse_dotplot(df2)
 
 (ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
-```{r gsea-dotplot, fig.asp=1.5, fig.width = 10, fig.cap="(ref:gsea-dotplot-figcap)"}
+```{r gsea-dotplot, fig.asp=1.5, fig.width = 8, fig.cap="(ref:gsea-dotplot-figcap)"}
 plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
-if (save_tiff) ggsave("figure 5.tiff",path="figures", compression = "lzw")
+if (save_tiff) ggsave("figure 5.tiff",path="figures", dpi=600, compression = "lzw")
 ```
 
 
