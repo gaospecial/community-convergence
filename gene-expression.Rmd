@@ -65,7 +65,11 @@ organsim_fullname <- c("EC"="E. coli","PP"="P. putida")
 
 Figure \@ref(fig:growth-curve) shows Growth curves of *E. coli* and *P. putida* in monoculture (A) and the "1:1000", "1:1", "1000:1" cocultures (B-D). The quantities were determined using species-specific qPCR as described in methods. In B-D subplots, the growth curves of monocultures were placed on the background layer (dashed lines), showing the difference between monoculture and cocultures.
 
-```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)"}
+
+
+
+
+```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)",fig.width=6}
 
 # stats
 growth_data <- qPCR_data %>% group_by(species,time,condition)  %>%
@@ -77,6 +81,7 @@ monoculture <-  growth_data %>%
 coculture <- growth_data %>%
   filter(condition %in% c("less","equal","more"))
 
+
 # plot
 growth_curve_mono <- ggplot(monoculture,aes(time,y,color=species)) +
   geom_line(lty="dashed",size=1) +
@@ -87,7 +92,7 @@ growth_curves_coculture <- lapply(c("less","equal","more"), function(x){
     geom_line(lty="dashed",size=1,alpha=1/3,data = monoculture) +
     geom_line(size=1,data=filter(coculture,condition==x)) +
     geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = monoculture,alpha=1/3) + 
-    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = filter(coculture,condition==x)) + 
+    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = filter(coculture,condition==x)) +
     geom_point(data = monoculture,alpha=1/3) + 
     geom_point(data=filter(coculture,condition==x))
     
@@ -100,49 +105,64 @@ growth_curves <- lapply(growth_curves, function(p){
         scale_y_continuous(limits = c(5,10.8),breaks = 5:10) +
         scale_color_discrete(labels=organsim_fullname,name="Species") +
         theme_bw() +
-        theme(legend.position = c(0.7,0.2),
+        theme(legend.position = c(0.7,0.3),
               legend.text = element_text(face = "italic"))
 })
 
 # show plot
-plot_grid(plotlist = growth_curves,ncol=2,labels = "AUTO")
-if (save_tiff) ggsave("figure 1.tiff",path="figures", compression = "lzw")
-if(save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+plot_grid(plotlist = growth_curves,ncol=2,labels = "auto")
 
 ```
 
 ### Comparision of coculture and monoculture quantities
 
-Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the species abundances between monoculture and three cocultures. Results for *E. coli* (A-G) and *P. putida* (H-N) were given by time, as been illustrated on the top subtitle. In x-axis, mono represents the quantity of monoculture, and "1:1000", "1:1", "1000:1" represent the quantity of three cocultures. The significance of p-values were showed by "\*" (p\<0.05), "\*\*" (p\<0.01) or "ns" (p\>0.05).
+Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the species abundances between monoculture and the "1:1000" (a), "1:1" (b), and "1000:1" (c) cocultures. The significance of p-values were showed by “*” (p<0.05), “**” (p<0.01) or “ns” (p>0.05). 
 
-```{r monoculture-vs-coculture, fig.width=12,fig.cap="Analysis the variance of the species abundances between monoculture and three cocultures"}
-ref_group <- c("all","none")
-library(ggtext)
-plots <- lapply(seq_along(ref_group), function(i){
-  ref <- ref_group[[i]]
-  lapply(c(0,0.5,1,2,4,8,24), function(x){
-   df <- qPCR_data %>% 
-     filter(species == organism[[i]],time==x) %>% 
-     dplyr::select(condition,quantity)
-  df$condition <- relevel(df$condition, ref)
-  ggplot(df,aes(condition,log10(quantity))) + 
-    geom_boxplot() + 
-    geom_jitter() + 
-    scale_x_discrete(labels = c("mono","1:1000","1:1","1000:1")) +
-    scale_y_continuous(expand = c(0,1)) +
-    labs(subtitle = paste0("*",organsim_fullname[[organism[[i]]]],"* - ", x, "h")) +
-    stat_compare_means(ref.group = ref,label = "p.signif") +
-    theme(plot.subtitle = element_markdown()) 
-  })
-  
-})
-plots <- unlist(plots,recursive = F)
-plot_grid(plotlist = plots,ncol=5,labels = "AUTO")
+
+```{r monoculture-vs-coculture, fig.asp=0.8,fig.cap="Analysis the variance of the species abundances between monoculture and cocultures"}
+library(rstatix)
+
+qPCR_stat <- qPCR_data %>% mutate(
+  condition = fct_other(condition,
+                        keep=c("less","equal","more"),
+                        other_level =  "mono")) %>%
+  group_by(time,species) %>%
+  wilcox_test(.,quantity ~ condition,ref.group = "mono") %>% 
+  mutate(condition = group2) %>%
+  select(time,species,condition,p.adj,p.adj.signif)
+
+
+# significance
+variance <- qPCR_data %>%
+  filter(condition %in% c("less","equal","more")) %>%
+  group_by(time,condition,species) %>%
+  summarise(y=max(log10(quantity))) %>%
+  ungroup() %>%
+  left_join(qPCR_stat)
+
+variance_plot <- function(cond){
+  qPCR_stat %>% filter(condition == cond) %>%
+    left_join(filter(coculture, condition==cond)) %>%
+  ggplot(aes(time,y,color=species)) +
+  geom_line(size=1,alpha=1/2) +
+  geom_point(size=2,alpha=1/2) +
+  ggrepel::geom_text_repel(aes(label=p.adj.signif),show.legend = F) +
+    ylab("Log(quantity)") + xlab("Time (h)") +
+        scale_y_continuous(limits = c(5,11),breaks = 5:10) +
+        scale_color_discrete(labels=organsim_fullname,name="Species") +
+        theme_bw() +
+        theme(legend.position = c(0.7,0.3),
+              legend.text = element_text(face = "italic"))
+}
+
+plots <- lapply(c("less","equal","more"), variance_plot)
+plot_grid(plotlist = plots,labels = "auto")
 
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 if (save_tiff) ggsave("figure S1.tiff",path="figures", compression = "lzw")
 
 ```
+
 
 ### Ratio (EC/PP) changes in cocultures
 
@@ -182,11 +202,11 @@ plot_ratio <- ggplot(ratio.sum, aes(time,y,shape=condition,color=condition)) +
   geom_text(aes(x=9,label=condition),hjust=0,vjust=c(0,0,1),
             data = filter(ratio.sum,time==8),
             show.legend = F) +
-
-  # directlabels::geom_dl(aes(label=condition),method="smart.grid") +
   scale_y_log10(labels=formatC,breaks=10^(-3:3)) +
+  geom_bracket(xmin = 0, xmax = 2,y.position=3.5,label = "ns",inherit.aes = FALSE) +
+  geom_bracket(xmin = 0, xmax = 4,y.position=1,label = "ns",inherit.aes = FALSE) +
+  geom_bracket(xmin = 0, xmax = 4,y.position=0.001,label = "ns",inherit.aes = FALSE) +
   labs(x="Time (h)", y="Ratio (EC/PP)") +
-  # scale_x_continuous(limits = c(-5,NA)) +
   theme(legend.position = c(0.8,0.75))
 
 ratio_24h <- ratio %>% filter(time==24)
@@ -199,13 +219,12 @@ plot_ratio_stats <- ggplot(ratio_24h,aes(condition,ratio,color=condition)) +
    scale_x_discrete(breaks=c("less","equal","more"),
                     labels=c("1:1000","1:1","1000:1"))+
   xlab("Condition") + ylab("Ratio (EC/PP)") +
+  scale_y_continuous(expand = expansion(0.1)) +
   theme(legend.position = "none",
-        panel.background = element_rect(fill="lightyellow"
-      ))
+        panel.background = element_rect(fill="lightyellow"),
+        plot.margin = margin(1,1,1,1,unit="cm"))
 
 plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
-if (save_tiff) ggsave("figure 2.tiff",path="figures", compression = "lzw")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
 
 Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)).
@@ -256,10 +275,22 @@ plots <- lapply(seq_along(pvalues), function(i){
   mtext(LETTERS[[i]], side = side, line = line, cex = cex, adj = adj)
 
 })
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure S2.tiff",path="figures", compression = "lzw")
 
 ```
+
+### Figure 1
+
+```{r fig.asp=1.5,fig.width=6}
+plot_grid(plot_grid(plotlist = growth_curves,ncol=2,labels = "auto"),
+  plot_grid(plot_ratio,plot_ratio_stats,labels = c("e","f"),rel_widths = c(3,2)),
+  ncol = 1, rel_heights = c(1.8,1)
+)
+
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 1.tiff",path="figures", compression = "lzw")
+
+```
+
 
 ## Gene expression analysis
 
@@ -299,8 +330,6 @@ plots <- lapply(1:length(samples),function(i){
 })
 legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
 plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
-if (save_tiff) ggsave("figure S3.tiff",path="figures", compression = "lzw")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
 ```
 
@@ -382,7 +411,7 @@ myPlotPCA <- function(object,
 ```
 
 
-```{r RNA-seq-PCA, fig.width=10,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
+```{r RNA-seq-PCA, fig.width=8,fig.asp=0.618,fig.cap="Principle coordinate analysis (PCA) of the gene expression profiles of *E. coli* (A) and *P. putida* (B) in different samples."}
 list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   myPlotPCA(vsd) + 
     facet_wrap(~time,ncol=4) +
@@ -392,7 +421,7 @@ list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
     theme(legend.position = "none")
   })
 
-plot_grid(plotlist = list_of_PCA_plot,labels = "AUTO",ncol=1)
+plot_grid(plotlist = list_of_PCA_plot,labels = "auto",ncol=1)
 if (save_tiff) ggsave("figure 3.tiff",path="figures", compression = "lzw")
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
@@ -403,7 +432,7 @@ if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
 Figure \@ref(fig:count-of-deg) shows the Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
 
-```{r count-of-deg, fig.asp=0.618,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B).",fig.width=6}
+```{r count-of-deg, fig.asp=0.8,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B).",fig.width=5}
 ## count DEG
 deg_count <- function(data){
   do.call("rbind",lapply(data, function(x) table(x$expression))) %>%
@@ -426,7 +455,8 @@ deg_count <- function(data){
 deg_count_EC <- deg_count(DEG_results.EC)
 deg_count_PP <- deg_count(DEG_results.PP)
 count <- list(deg_count_EC, deg_count_PP)
-plots <- lapply(seq_along(count), function(i){
+library(ggtext)
+deg_count_plots <- lapply(seq_along(count), function(i){
   x <- count[[i]]
   ggplot(x, aes(x = time, y = count, color = type)) +
     geom_point() +
@@ -443,7 +473,7 @@ plots <- lapply(seq_along(count), function(i){
 }) 
 
 
-plot_grid(plotlist = plots,labels = "AUTO",ncol = 1)
+plot_grid(plotlist = deg_count_plots,labels = "AUTO",ncol = 1)
 if (save_tiff) ggsave("figure 4.tiff",path="figures", compression = "lzw")
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 ```
@@ -664,7 +694,7 @@ eco_gsea_pathay <- kegg_path_tree(df1,
                                   gene_id = "core_enrichment")
 df1$Description <- factor(df1$Description,
                           levels = eco_gsea_pathay)
-p1 <- gse_dotplot(df1)
+gsea_plot_EC <- gse_dotplot(df1)
 
 ## GSEA dotplot of P. putida
 df2 <- gse_result(gseKEGG_results.PP)
@@ -673,14 +703,16 @@ ppu_gsea_pathway <- kegg_path_tree(df2,
                               gene_id = "core_enrichment")
 df2$Description <- factor(df2$Description,
                           levels = ppu_gsea_pathway)
-p2 <- gse_dotplot(df2)
+gsea_plot_PP <- gse_dotplot(df2)
 ```
 
 (ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
 ```{r gsea-dotplot, fig.asp=1.5, fig.width = 8, fig.cap="(ref:gsea-dotplot-figcap)"}
-plot_grid(p1,p2,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
-if (save_tiff) ggsave("figure 5.tiff",path="figures", dpi=600, compression = "lzw")
+plot_grid(gsea_plot_EC,gsea_plot_PP,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
+if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
+
 ```
 
 
@@ -701,24 +733,25 @@ Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E.
 
 (ref:gsea-overlap-vennplot-figcap) Overlap of GSEA pathway in *E. coli* and *P. putida*. Pathways were distinguished by their descriptions, and separated to activated and suppressed ones. 
 
-```{r gsea-overlap-vennplot, fig.asp=1, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
+```{r gsea-overlap-vennplot, fig.asp=0.5, fig.width= 6, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
 l <- merged_gsea$pathway
 names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
-p1 <- ggVennDiagram(l,label = "count") +
-  scale_x_continuous(expand = c(0.1,0.1))
+gsea_pathway_venn1 <- ggVennDiagram(l,label = "count") +
+  scale_x_continuous(expand = c(0.1,0.1))+ theme(legend.position = "none")
 
 l2 <- list(eco=c(l[[1]],l[[2]]), ppu=c(l[[3]],l[[4]]))
-p2 <- ggVennDiagram(l2, label = "count")
+gsea_pathway_venn2 <- ggVennDiagram(l2, label = "count")+ theme(legend.position = "none")
 
 l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
-p3 <- ggVennDiagram(l3, label = "count")
+gsea_pathway_venn3 <- ggVennDiagram(l3, label = "count") + theme(legend.position = "none")
 
-plot_grid(plot_grid(p2,p3,ncol = 2,labels = c("A","B")),p1,labels = c("","C"),ncol = 1,rel_heights = c(.5,1))
+plot_grid(plot_grid(gsea_pathway_venn2,gsea_pathway_venn3,ncol = 1,labels = c("A","B")),gsea_pathway_venn1,labels = c("","C"),ncol = 2,rel_widths = c(.5,1))
 
 if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure 6.tiff",path="figures", compression = "lzw")
+if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
 
 ```
+
 
 View intersect in Venn diagram interactively (Figure \@ref(fig:overlap-plotly)).
 
