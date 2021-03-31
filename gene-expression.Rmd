@@ -1,9 +1,10 @@
 ---
-title: "Transcriptomic level adaptive capacity play roles in the deterministic assembly of a two species cocultures"
-author: "Chun-Hui Gao, Hui Cao, Peng Cai"
+title: "Emergent transcriptional adaption facilitates the convergent succession within a synthetic community"
+author: "Chun-Hui Gao, Hui Cao, Peng Cai, et.al."
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
+    self_contained: no
     toc: yes
     number_sections: no
     toc_float: yes
@@ -18,9 +19,9 @@ knitr::opts_chunk$set(fig.width = 8,
                       out.width = "75%",
                       fig.asp=0.618,
                       fig.align = "center",
-                      message = F)
+                      message = F,
+                      dev = c("png","pdf"))
 
-save_figure_to_ppt <- T
 save_tiff <- T
 
 # 作图
@@ -158,7 +159,6 @@ variance_plot <- function(cond){
 plots <- lapply(c("less","equal","more"), variance_plot)
 plot_grid(plotlist = plots,labels = "auto")
 
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 if (save_tiff) ggsave("figure S1.tiff",path="figures", compression = "lzw")
 
 ```
@@ -278,18 +278,6 @@ plots <- lapply(seq_along(pvalues), function(i){
 
 ```
 
-### Figure 1
-
-```{r fig.asp=1.5,fig.width=6}
-plot_grid(plot_grid(plotlist = growth_curves,ncol=2,labels = "auto"),
-  plot_grid(plot_ratio,plot_ratio_stats,labels = c("e","f"),rel_widths = c(3,2)),
-  ncol = 1, rel_heights = c(1.8,1)
-)
-
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure 1.tiff",path="figures", compression = "lzw")
-
-```
 
 
 ## Gene expression analysis
@@ -330,6 +318,7 @@ plots <- lapply(1:length(samples),function(i){
 })
 legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
 plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
+if (save_tiff) ggsave("figure S2.tiff",path="figures", compression = "lzw")
 
 ```
 
@@ -422,9 +411,17 @@ list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   })
 
 plot_grid(plotlist = list_of_PCA_plot,labels = "auto",ncol=1)
-if (save_tiff) ggsave("figure 3.tiff",path="figures", compression = "lzw")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure 1g.tiff",path="figures", compression = "lzw")
+```
 
+
+```{r eval=FALSE}
+# figure 1
+library(patchwork)
+(growth_curves[[1]] | growth_curves[[2]] | growth_curves[[3]] ) / 
+  ( growth_curves[[4]] + plot_ratio + plot_ratio_stats + plot_layout(ncol=3,widths = c(1.5,1.5,1))) /
+  list_of_PCA_plot[[1]] / 
+  list_of_PCA_plot[[2]]
 
 ```
 
@@ -474,8 +471,7 @@ deg_count_plots <- lapply(seq_along(count), function(i){
 
 
 plot_grid(plotlist = deg_count_plots,labels = "AUTO",ncol = 1)
-if (save_tiff) ggsave("figure 4.tiff",path="figures", compression = "lzw")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
+if (save_tiff) ggsave("figure S3.tiff",path="figures", compression = "lzw")
 ```
 
 ### Specific DEGs in *E. coli* and *P. putida*
@@ -511,7 +507,6 @@ deg_Venn_plot_PP <- lapply(seq_along(ratio0), function(i){
 plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
           labels = "AUTO")
 if (save_tiff) ggsave("figure S4.tiff",path="figures", compression = "lzw")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 
 ```
 
@@ -611,7 +606,6 @@ p2 <- grid_panel_autoheight(p2)
 
 ```{r kegg-ora, fig.width=8, fig.asp=1.1, fig.cap="(ref:kegg-ora-cap) "}
 plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
 if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
 
 ```
@@ -637,12 +631,14 @@ get_genelist <- function(x){
   return(geneList)
 }
 
+set.seed(1234)
+
 ### *E. coli* GSEA KEGG result
 gseKEGG_results.EC <- lapply(gene_expression.EC, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, 
                    organism = "eco",
-                   nPerm = 10000,
+                   nPerm = 100000,
                    minGSSize = 10,
                    use_internal_data = TRUE),
            error=function(e) NULL)
@@ -653,7 +649,7 @@ gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, 
                    organism = "ppu",
-                   nPerm = 10000,
+                   nPerm = 100000,
                    minGSSize = 10,
                    use_internal_data = TRUE),
            error=function(e) NULL)
@@ -710,8 +706,6 @@ gsea_plot_PP <- gse_dotplot(df2)
 
 ```{r gsea-dotplot, fig.asp=1.5, fig.width = 8, fig.cap="(ref:gsea-dotplot-figcap)"}
 plot_grid(gsea_plot_EC,gsea_plot_PP,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
 
 ```
 
@@ -746,9 +740,6 @@ l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
 gsea_pathway_venn3 <- ggVennDiagram(l3, label = "count") + theme(legend.position = "none")
 
 plot_grid(plot_grid(gsea_pathway_venn2,gsea_pathway_venn3,ncol = 1,labels = c("A","B")),gsea_pathway_venn1,labels = c("","C"),ncol = 2,rel_widths = c(.5,1))
-
-if (save_figure_to_ppt) export::graph2ppt(file="figures.pptx",append=TRUE)
-if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
 
 ```
 
