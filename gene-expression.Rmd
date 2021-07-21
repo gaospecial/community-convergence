@@ -22,7 +22,7 @@ knitr::opts_chunk$set(fig.width = 8,
                       message = F,
                       dev = c("png","pdf"))
 
-save_tiff <- T
+save_tiff <- FALSE
 
 # 作图
 library(tidyverse)
@@ -70,7 +70,7 @@ Figure \@ref(fig:growth-curve) shows Growth curves of *E. coli* and *P. putida* 
 
 
 
-```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)",fig.width=6}
+```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)"}
 
 # stats
 growth_data <- qPCR_data %>% group_by(species,time,condition)  %>%
@@ -255,7 +255,7 @@ ratio3 <- ratio %>% filter(condition=="more")
 
 Figure \@ref(fig:comparison-by-time) shows P-values of pairwise comparison of real-time EC/PP ratios in the "1:1000" (A), "1:1" (B) and "1000:1" (C) cocultures. Circles showed the adjusted p-value for the comparison of the EC/PP ratios between two samples, which were indicated on the top and left (large circle mean large p-value). On this plot, a cross mark was given if the p-value is non-significant (P \> 0.05).
 
-```{r comparison-by-time, fig.cap="P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures.", fig.asp=0.4}
+```{r comparison-by-time, fig.cap="P-values of pairwise comparison of real-time EC/PP ratios in the “1:1000” (A), “1:1” (B) and “1000:1” (C) cocultures.", fig.asp=0.45}
 par(mfrow=c(1,3))
 pvalues <- list(p1,p2,p3)
 line = 0
@@ -415,21 +415,115 @@ if (save_tiff) ggsave("figure 1g.tiff",path="figures", compression = "lzw")
 ```
 
 
-```{r eval=FALSE}
-# figure 1
-library(patchwork)
-(growth_curves[[1]] | growth_curves[[2]] | growth_curves[[3]] ) / 
-  ( growth_curves[[4]] + plot_ratio + plot_ratio_stats + plot_layout(ncol=3,widths = c(1.5,1.5,1))) /
-  list_of_PCA_plot[[1]] / 
-  list_of_PCA_plot[[2]]
+### Beta-dispersion
 
+According to one of the reviewers' suggestions, we **use the beta-dispersion** to compare the significance of gene expression change within different time points.
+
+```{r}
+
+models = lapply(list_of_vsd, function(object){
+  dist = vegdist(t(assay(object)), method = "euclidean")
+  group_data = colData(object) %>% 
+    as_tibble() %>%
+    dplyr::mutate(group=paste0(ratio0," (",time,"h)")) 
+  mod = with(group_data, betadisper(dist, group = group))
+  return(mod)
+})
 ```
 
-### Count of DEGs
+We define a function `ggplot.betadisper()` to plot *betadisper* object with ggplot2 methods.
 
-Figure \@ref(fig:count-of-deg) shows the Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
+```{r}
+# group meta data
+group_meta = tableS1 %>%
+  dplyr::rename_all(tolower) %>%
+  dplyr::select(sample, condition, time) %>%
+  dplyr::mutate(condition = factor(condition,
+                               levels = c("none","less","equal","more","all"),
+                               labels = c("P. putida","1:1000","1:1","1000:1","E. coli"))) %>%
+  dplyr::mutate(group =  paste0(condition," (",time,"h)"))
 
-```{r count-of-deg, fig.asp=0.8,fig.cap="Counts of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B).",fig.width=5}
+ggplot.betadisper = function(x){
+  
+  percent_var = x$eig/sum(x$eig)
+  xylab = paste0("PCoA ", 1:2, ": ", round(percent_var[1:2] * 100), "% variance") 
+  
+  sites = scores(x, display = "sites", choices = c(1,2)) %>% 
+    as.data.frame() %>% 
+    tibble::rownames_to_column(var="sample")
+  sites$group = x$group
+  sites = left_join(sites, group_meta)
+  
+  centroids = scores(x, display = "centroids", choices = 1:2) %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column(var="group")
+  centroids = left_join(centroids, group_meta %>% select(-sample) %>% unique())
+  
+  ggplot() +
+    aes_string(x="PCoA1",y="PCoA2") +
+    geom_point(aes(color = condition), shape = 21, alpha = 1/2,data = sites) +
+    geom_polygon(aes(fill=condition, group=group), data=sites, alpha=1/2) +
+    geom_point(aes(color=condition, fill=condition), shape=21, size = 3, data=centroids ) +
+    ggrepel::geom_label_repel(aes(label = group, color = condition), 
+                              data=centroids, 
+                              alpha=1/2,
+                              label.size = NA,
+                              segment.color = "grey",
+                              fontface = "bold.italic") + 
+    scale_color_manual(limits=c("E. coli","1:1000","1:1","1000:1","P. putida"),
+                       values = brewer.pal(5,"Dark2")) +
+    scale_fill_manual(limits=c("E. coli","1:1000","1:1","1000:1","P. putida"),
+                       values = brewer.pal(5,"Dark2")) +
+    labs(x = xylab[[1]], 
+         y = xylab[[2]]) +
+    theme(legend.position = "none")
+  
+
+}
+```
+
+(ref:cap-betadisper-ec) Beta-dispersion shows the gene expression trajectory of all *E. coli* containing cultures in the plane of PCoA 1 and PCoA 2 over time. Open circles are the coordinates of samples. There are three points for each condition and time, and they formed a color-filled triangle. Centroid for each triangle was highlighted with larger size point with filled color.
+
+```{r betadisper-ec, fig.cap="(ref:cap-betadisper-ec)"}
+ggplot.betadisper(models[[1]])
+```
+
+(ref:cap-betadisper-pp) Beta-dispersion shows the gene expression trajectory of all *P. putida* containing cultures in the plane of PCoA 1 and PCoA 2 over time. Open circles are the coordinates of samples. There are three points for each condition and time, and they formed a color-filled triangle. Centroid for each triangle was showed as a filled circle.
+
+```{r betadisper-pp, fig.cap="(ref:cap-betadisper-pp)"}
+ggplot.betadisper(models[[2]])
+```
+
+#### Comparison of dispersion 
+
+- For the dispersion of *E. coli*
+
+The gene expression dispersion of 1:1000 is the highest at 0 and 4 h.
+
+```{r}
+par(mar = c(7,5,2,1))
+boxplot(models[[1]], las = 2, xlab = NA, 
+        main = expression( italic(E.~coli )))
+```
+
+- For the dispersion of *P. putida*
+
+The gene expression dispersion of 1000:1 is the highest at 0, 4 and 8 h.
+
+
+```{r}
+par(mar = c(7,5,2,1))
+boxplot(models[[2]], las = 2, xlab = NA, 
+        main = expression(italic(P.~putida)))
+```
+
+
+
+### Number of DEGs
+
+Figure \@ref(fig:number-of-deg) shows the numbers of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B). The DEGs were identified by comparison with the corresponding monoculture at the same time. Up- and down-regulation of genes were colored by red and cyan, respectively.
+
+```{r number-of-deg, fig.asp=0.8,fig.cap="numbers of differentially expressed genes (DEGs) in three cocultures, in *E. coli* (A) and *P. putida* (B).",fig.width=5}
 ## count DEG
 deg_count <- function(data){
   do.call("rbind",lapply(data, function(x) table(x$expression))) %>%
@@ -460,7 +554,7 @@ deg_count_plots <- lapply(seq_along(count), function(i){
     geom_line(size = 1) +
     scale_y_continuous(labels = function(x){abs(x)}) +
     facet_wrap(~ratio) +
-    labs(x="Time(h)",y="Count of DEGs",
+    labs(x="Time(h)",y="Number of DEGs",
          color = "Gene expression:",
          title= paste0("DEGs in *",organsim_fullname[[i]],"*")) +
     theme(legend.position = c(0.618,1),
@@ -487,7 +581,6 @@ deg_Venn_plot_EC <- lapply(seq_along(ratio0), function(i){
   ggVennDiagram(gene_list,label = "count",
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
-    coord_equal() +
     labs(title=paste0(ratio0[[i]]," - *E. coli*")) +
     theme(legend.position = "none",
           plot.title = element_markdown(hjust=0.5))
@@ -498,7 +591,6 @@ deg_Venn_plot_PP <- lapply(seq_along(ratio0), function(i){
   ggVennDiagram(gene_list,label = "count",
                 category.names = c("0h","4h","8h","24h")) +
     scale_fill_gradient(low="white",high="red",limits=c(0,310)) +
-    coord_equal() +
     labs(title=paste0(ratio0[[i]]," - *P. putida*")) +
     theme(legend.position = "none",
           plot.title = element_markdown(hjust=0.5))
@@ -512,16 +604,45 @@ if (save_tiff) ggsave("figure S4.tiff",path="figures", compression = "lzw")
 
 ## Enrichment analysis of DEGs
 
-We use `clusterProfiler` to perform KEGG enrichment analysis.
+We use **clusterProfiler** to perform KEGG enrichment analysis.
 
 ```{r}
+
+kegg_path_tree <- function(df, pathway_name, gene_id, sep="/"){
+  pathway <- df %>% 
+    separate_rows(all_of(gene_id), sep = sep) %>%
+    dplyr::select(all_of(c(pathway_name, gene_id))) %>%
+    unique() %>%
+    mutate(value = 1) %>%
+    pivot_wider(id_cols = pathway_name,
+                names_from = gene_id,
+                values_from = value,
+                values_fill = list(value = 0))
+  library(vegan)
+  matrix <- as.matrix(column_to_rownames(pathway, pathway_name))
+  dist <- vegdist(matrix, method = "jaccard")
+  
+  library(ape)
+  library(ggtree)
+  tree <- bionj(dist)
+  p <- ggtree(tree,branch.length = "none")
+  p$data %>%
+    filter(isTip) %>%
+    arrange(y) %>%
+    pull(label)
+}
+
 ck_plot <- function(ck, 
                     mapping = aes(time, Description, size = GeneRatio)){
   df <- data.frame(ck) %>%
     mutate(ratio = factor(ratio, levels = c("less","equal","more"),
                           labels = c("1:1000","1:1","1000:1")),
            time = factor(time, levels = c("0h","4h","8h","24h"))) 
-  df$Description <- factor(df$Description, levels = kegg_path_tree(df,pathway_name = "Description", gene_id = "geneID"))
+  df$Description <- factor(df$Description, 
+                           levels = 
+                             kegg_path_tree(df,
+                                            pathway_name = "Description",
+                                            gene_id = "geneID"))
   df$GeneRatio <- sapply(df$GeneRatio, function(x) eval(parse(text = x)))
   ggplot(df, mapping = mapping) +
     geom_point() +
@@ -549,33 +670,12 @@ reset_facet_width <- function(p, rel_width = c(1)){
   return(gp)
 }
 
-kegg_path_tree <- function(df, pathway_name, gene_id, sep="/"){
-  pathway <- df %>% 
-    separate_rows(all_of(gene_id), sep = sep) %>%
-    dplyr::select(all_of(c(pathway_name, gene_id))) %>%
-    unique() %>%
-    mutate(value = 1) %>%
-    pivot_wider(id_cols = pathway_name,
-                names_from = gene_id,
-                values_from = value,
-                values_fill = list(value = 0))
-  library(vegan)
-  matrix <- as.matrix(column_to_rownames(pathway, pathway_name))
-  dist <- vegdist(matrix, method = "jaccard")
-  
-  library(ape)
-  library(ggtree)
-  tree <- bionj(dist)
-  p <- ggtree(tree,branch.length = "none")
-  p$data %>%
-    filter(isTip) %>%
-    arrange(y) %>%
-    pull(label)
-}
 ```
 
-```{r include=FALSE}
-## KEGG enrichment in E. coli
+### KEGG enrichment in *E. coli*
+
+
+```{r}
 deg1 <- do.call("rbind", DEG_results.EC) %>% 
   separate(comparison, into = c("ratio","time"), extra = "drop")
 
@@ -587,8 +687,11 @@ ck1 <- compareCluster(gene ~ ratio + time,
 
 p1 <- ck_plot(ck1)
 p1 <- grid_panel_autoheight(p1)
+```
 
-## KEGG enrichment in P. putida
+### KEGG enrichment in *P. putida*
+
+```{r}
 deg2 <- do.call("rbind", DEG_results.PP) %>% 
   separate(comparison, into = c("ratio","time"), extra = "drop")
 
@@ -601,6 +704,8 @@ ck2 <- compareCluster(gene ~ ratio + time,
 p2 <- ck_plot(ck2)
 p2 <- grid_panel_autoheight(p2)
 ```
+
+### Dotplot of KEGG enrichment results
 
 (ref:kegg-ora-cap) A dot plot shows the KEGG enrichment result of *E. coli* (A) and *P. putida* (B) in the three coculture as a function of time.
 
@@ -621,7 +726,7 @@ gene_expression.EC <- readRDS("data/gene_expression.EC.rds")
 gene_expression.PP <- readRDS("data/gene_expression.PP.rds")
 ```
 
-```{r gseKEGG-result-EC, warning=FALSE}
+```{r warning=FALSE}
 # define a function to extract and prepare formatted data for GSEA
 get_genelist <- function(x){
   if (nrow(x) < 1) return(NULL)
@@ -633,28 +738,44 @@ get_genelist <- function(x){
 
 set.seed(1234)
 
+```
+
 ### *E. coli* GSEA KEGG result
+
+```{r gseKEGG-result-EC, warning=FALSE}
 gseKEGG_results.EC <- lapply(gene_expression.EC, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, 
                    organism = "eco",
-                   nPerm = 100000,
-                   minGSSize = 10,
+                   eps = 1e-20,
+                   pvalueCutoff = 1, # all results
                    use_internal_data = TRUE),
            error=function(e) NULL)
 })
+count.EC.pathways = nrow(data.frame(gseKEGG_results.EC[[1]]))
+
+```
+
+The GSEA analysis of *E. coli* included `r count.EC.pathways` pathways.
 
 ### *P. putida* GSEA KEGG result
+
+```{r gseKEGG-result-PP, warning=FALSE}
 gseKEGG_results.PP <- lapply(gene_expression.PP, function(x){
   geneList <- get_genelist(x)
   tryCatch(gseKEGG(geneList, 
                    organism = "ppu",
-                   nPerm = 100000,
-                   minGSSize = 10,
+                   eps = 1e-20,
+                   pvalueCutoff = 1, # all results
                    use_internal_data = TRUE),
            error=function(e) NULL)
 })
+count.PP.pathways = nrow(data.frame(gseKEGG_results.PP[[1]]))
 ```
+
+The GSEA analysis of *P. putida* included `r count.PP.pathways` pathways.
+
+### Dotplot of GSEA results
 
 ```{r}
 # combine and reform GSEA result to a data frame
@@ -669,7 +790,8 @@ gse_result <- function(result){
     mutate(ratio = factor(ratio, levels = c("less","equal","more"),
                           labels = c("1:1000","1:1","1000:1")),
            time = factor(time, levels = c("0h","4h","8h","24h")),
-           type = ifelse(enrichmentScore >0, "activated", "suppressed"),
+           type = ifelse(p.adjust > 0.05, "unchanged",
+                         ifelse(enrichmentScore >0, "activated", "suppressed")),
            enrichScore = abs(enrichmentScore)) 
 }
 
@@ -684,16 +806,18 @@ gse_dotplot <- function(df){
 
 ```{r include=FALSE}
 ## GSEA dotplot of E. coli
-df1 <- gse_result(gseKEGG_results.EC)
-eco_gsea_pathay <- kegg_path_tree(df1,
+df1 <- gse_result(gseKEGG_results.EC) %>%
+  filter(type %in% c("activated","suppressed"))
+eco_gsea_pathway <- kegg_path_tree(df1,
                                   pathway_name = "Description",
                                   gene_id = "core_enrichment")
 df1$Description <- factor(df1$Description,
-                          levels = eco_gsea_pathay)
+                          levels = eco_gsea_pathway)
 gsea_plot_EC <- gse_dotplot(df1)
 
 ## GSEA dotplot of P. putida
-df2 <- gse_result(gseKEGG_results.PP)
+df2 <- gse_result(gseKEGG_results.PP) %>%
+  filter(type %in% c("activated","suppressed"))
 ppu_gsea_pathway <- kegg_path_tree(df2,
                               pathway_name = "Description",
                               gene_id = "core_enrichment")
@@ -716,28 +840,50 @@ Figure \@ref(fig:gsea-dotplot) shows the GSEA analysis result for *E. coli* (A) 
 
 ```{r}
 # todo
-merged_gsea <- rbind(mutate(df1, organism = "eco"), mutate(df2, organism = "ppu"))
-merged_gsea <- merged_gsea %>% group_by(organism, type) %>% nest()
-merged_gsea$pathway <- sapply(merged_gsea$data, function(x) pull(x, Description) %>% as.character())
+merged_gsea <- rbind(mutate(df1, organism = "eco"),
+                     mutate(df2, organism = "ppu"))
+
+```
+
+```{r eval=FALSE}
+upset_gsea = merged_gsea %>% group_by(organism,type,time) %>% nest() 
+upset_gsea$pathway <- sapply(upset_gsea$data, function(x) pull(x, Description) %>% as.character())
+l <- upset_gsea$pathway
+names(l) = paste(upset_gsea$organism, upset_gsea$type, upset_gsea$time,sep = "-")
+upset(fromList(l), nsets=23,keep.order = T, order.by = "freq")
 
 ```
 
 
+
 Figure \@ref(fig:gsea-overlap-vennplot) shows the Overlap of GSEA pathway in *E. coli* and *P. putida*. 
+
 
 (ref:gsea-overlap-vennplot-figcap) Overlap of GSEA pathway in *E. coli* and *P. putida*. Pathways were distinguished by their descriptions, and separated to activated and suppressed ones. 
 
-```{r gsea-overlap-vennplot, fig.asp=0.5, fig.width= 6, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
-l <- merged_gsea$pathway
-names(l) <- paste(merged_gsea$organism, merged_gsea$type,sep = "-")
+```{r gsea-overlap-vennplot, fig.asp=0.5, fig.cap="(ref:gsea-overlap-vennplot-figcap)"}
+# changed pathways
+venn_gsea <- merged_gsea %>%
+  filter(type %in% c("suppressed","activated")) %>% 
+  group_by(organism, type) %>% nest()
+venn_gsea$pathway <- sapply(venn_gsea$data, function(x) pull(x, Description) %>% as.character())
+
+l <- venn_gsea$pathway
+names(l) <- paste(venn_gsea$organism, venn_gsea$type,sep = "-")
 gsea_pathway_venn1 <- ggVennDiagram(l,label = "count") +
-  scale_x_continuous(expand = c(0.1,0.1))+ theme(legend.position = "none")
+    scale_x_continuous(expand = c(0.1,0.1))+ 
+  scale_fill_gradient(low="white",high="red",limits=c(0,100)) +
+  theme(legend.position = "none")
 
 l2 <- list(eco=c(l[[1]],l[[2]]), ppu=c(l[[3]],l[[4]]))
-gsea_pathway_venn2 <- ggVennDiagram(l2, label = "count")+ theme(legend.position = "none")
+gsea_pathway_venn2 <- ggVennDiagram(l2, label = "count")+  
+  scale_fill_gradient(low="white",high="red",limits=c(0,50)) +
+  theme(legend.position = "none")
 
 l3 <- list(activated=c(l[[1]],l[[3]]), suppressed=c(l[[2]],l[[4]]))
-gsea_pathway_venn3 <- ggVennDiagram(l3, label = "count") + theme(legend.position = "none")
+gsea_pathway_venn3 <- ggVennDiagram(l3, label = "count") + 
+  scale_fill_gradient(low="white",high="red",limits=c(0,50)) +
+ theme(legend.position = "none")
 
 plot_grid(plot_grid(gsea_pathway_venn2,gsea_pathway_venn3,ncol = 1,labels = c("A","B")),gsea_pathway_venn1,labels = c("","C"),ncol = 2,rel_widths = c(.5,1))
 
@@ -750,6 +896,13 @@ View intersect in Venn diagram interactively (Figure \@ref(fig:overlap-plotly)).
 p <- ggVennDiagram(l, label = NULL, show_intersect = TRUE)
 plotly::ggplotly(p)
 ```
+
+## Session info
+
+```{r}
+sessioninfo::session_info()
+```
+
 
 ## Reference
 
