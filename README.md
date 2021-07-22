@@ -1,6 +1,6 @@
 The repository contains the supplementary files of a recent paper.
 
-**Gao, C.-H.**; Cao, H.; Xiao, K.-Q.; Ju, F.; Cai, P.; Wu, Y.-C.; Huang Q.-Y. Dissecting the mechanism of convergence within a synthetic community. In submission
+**Gao, C.-H.**; Cao, H.; Xiao, K.-Q.; Ju, F.; Cai, P.*; Wu, Y.-C.; Huang Q.-Y. Emergent transcriptional adaption facilitates the convergent succession within a synthetic community. In revision
 
 The codes available here enable reproducible study of this paper. 
 
