@@ -22,7 +22,6 @@ knitr::opts_chunk$set(fig.width = 8,
                       message = F,
                       dev = c("png","pdf"))
 
-save_tiff <- FALSE
 
 # 作图
 library(tidyverse)
@@ -64,13 +63,12 @@ organism <- c("EC","PP")
 organsim_fullname <- c("EC"="E. coli","PP"="P. putida")
 ```
 
-Figure \@ref(fig:growth-curve) shows Growth curves of *E. coli* and *P. putida* in monoculture (A) and the "1:1000", "1:1", "1000:1" cocultures (B-D). The quantities were determined using species-specific qPCR as described in methods. In B-D subplots, the growth curves of monocultures were placed on the background layer (dashed lines), showing the difference between monoculture and cocultures.
+### Comparision of coculture and monoculture quantities
+
+Figure \@ref(fig:monoculture-vs-coculture) shows Growth curves of *E. coli* and *P. putida* in monoculture (A) and the "1:1000", "1:1", "1000:1" cocultures (B-D). The quantities were determined using species-specific qPCR as described in methods. In B-D subplots, the growth curves of monocultures were placed on the background layer (dashed lines), shows the variance analysis of the species abundances between monoculture and the "1:1000" (b), "1:1" (d), and "1000:1" (d) cocultures. The significance of p-values were showed by “*” (p<0.05), “**” (p<0.01) or “ns” (p>0.05). 
 
 
-
-
-
-```{r growth-curve, fig.asp=0.8, fig.cap="Growth curves of *E. coli* and *P. putida* in monoculture (A) and the 1:1000, 1:1, 1000:1 cocultures (B-D)"}
+```{r}
 
 # stats
 growth_data <- qPCR_data %>% group_by(species,time,condition)  %>%
@@ -87,40 +85,14 @@ coculture <- growth_data %>%
 growth_curve_mono <- ggplot(monoculture,aes(time,y,color=species)) +
   geom_line(lty="dashed",size=1) +
     geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5) + 
-    geom_point(data = monoculture) 
-growth_curves_coculture <- lapply(c("less","equal","more"), function(x){
-  ggplot(mapping = aes(time,y,color=species)) + 
-    geom_line(lty="dashed",size=1,alpha=1/3,data = monoculture) +
-    geom_line(size=1,data=filter(coculture,condition==x)) +
-    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = monoculture,alpha=1/3) + 
-    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = filter(coculture,condition==x)) +
-    geom_point(data = monoculture,alpha=1/3) + 
-    geom_point(data=filter(coculture,condition==x))
-    
-})
+    geom_point(data = monoculture)
 
-# plot enhancement
-growth_curves <- c(list(growth_curve_mono), growth_curves_coculture)
-growth_curves <- lapply(growth_curves, function(p){
-  p + ylab("Log(quantity)") + xlab("Time (h)") +
-        scale_y_continuous(limits = c(5,10.8),breaks = 5:10) +
-        scale_color_discrete(labels=organsim_fullname,name="Species") +
-        theme_bw() +
-        theme(legend.position = c(0.7,0.3),
-              legend.text = element_text(face = "italic"))
-})
-
-# show plot
-plot_grid(plotlist = growth_curves,ncol=2,labels = "auto")
 
 ```
 
-### Comparision of coculture and monoculture quantities
-
-Figure \@ref(fig:monoculture-vs-coculture) shows the variance analysis of the species abundances between monoculture and the "1:1000" (a), "1:1" (b), and "1000:1" (c) cocultures. The significance of p-values were showed by “*” (p<0.05), “**” (p<0.01) or “ns” (p>0.05). 
 
 
-```{r monoculture-vs-coculture, fig.asp=0.8,fig.cap="Analysis the variance of the species abundances between monoculture and cocultures"}
+```{r monoculture-vs-coculture,fig.asp=0.618, fig.cap="Analysis the variance of the species abundances between monoculture and cocultures"}
 library(rstatix)
 
 qPCR_stat <- qPCR_data %>% mutate(
@@ -147,19 +119,26 @@ variance_plot <- function(cond){
   ggplot(aes(time,y,color=species)) +
   geom_line(size=1,alpha=1/2) +
   geom_point(size=2,alpha=1/2) +
-  ggrepel::geom_text_repel(aes(label=p.adj.signif),show.legend = F) +
+        geom_line(lty="dashed",size=1,alpha=1/3,data = monoculture) +
+    geom_errorbar(aes(ymin=y-std,ymax=y+std),size=.5,data = monoculture,alpha=1/3) + 
+  ggrepel::geom_text_repel(aes(label=p.adj.signif),
+                           max.overlaps = 20,
+                           segment.colour = "black",
+                           show.legend = F)
+}
+
+plots <- lapply(c("less","equal","more"), variance_plot)
+plots = lapply(c(list(growth_curve_mono),plots), function(p){
+  p + 
     ylab("Log(quantity)") + xlab("Time (h)") +
         scale_y_continuous(limits = c(5,11),breaks = 5:10) +
         scale_color_discrete(labels=organsim_fullname,name="Species") +
         theme_bw() +
         theme(legend.position = c(0.7,0.3),
               legend.text = element_text(face = "italic"))
-}
-
-plots <- lapply(c("less","equal","more"), variance_plot)
-plot_grid(plotlist = plots,labels = "auto")
-
-if (save_tiff) ggsave("figure S1.tiff",path="figures", compression = "lzw")
+})
+plot_grid(plotlist = plots,labels = "auto", ncol = 3)
+export::graph2ppt(append  = TRUE)
 
 ```
 
@@ -184,7 +163,7 @@ Figure \@ref(fig:ratio-change) shows the deterministic assembly of *E. coli* and
 
 (ref:ratio-change-figcap) Deterministic assembly of *E. coli* and *P. putida* cocultures. (A) the real-time ratio of EC: PP after 0, 0.5, 1, 2, 4, 8 and 24 h cultivation. (B) Analysis of the variances of EC/PP ratios (24h) between cocultures.
 
-```{r ratio-change, fig.width=6, fig.asp=0.618, fig.cap="(ref:ratio-change-figcap)"}
+```{r ratio-change, fig.asp=0.32, fig.cap="(ref:ratio-change-figcap)"}
 ratio.sum <- ratio %>% 
   group_by(sample) %>%
   mutate(y=mean(ratio,na.rm=TRUE),std=sd(ratio,na.rm=TRUE)) %>% 
@@ -202,7 +181,8 @@ plot_ratio <- ggplot(ratio.sum, aes(time,y,shape=condition,color=condition)) +
   geom_text(aes(x=9,label=condition),hjust=0,vjust=c(0,0,1),
             data = filter(ratio.sum,time==8),
             show.legend = F) +
-  scale_y_log10(labels=formatC,breaks=10^(-3:3)) +
+  scale_y_log10(labels=formatC,breaks=10^(-3:3),
+                expand = expansion(0.1)) +
   geom_bracket(xmin = 0, xmax = 2,y.position=3.5,label = "ns",inherit.aes = FALSE) +
   geom_bracket(xmin = 0, xmax = 4,y.position=1,label = "ns",inherit.aes = FALSE) +
   geom_bracket(xmin = 0, xmax = 4,y.position=0.001,label = "ns",inherit.aes = FALSE) +
@@ -219,12 +199,13 @@ plot_ratio_stats <- ggplot(ratio_24h,aes(condition,ratio,color=condition)) +
    scale_x_discrete(breaks=c("less","equal","more"),
                     labels=c("1:1000","1:1","1000:1"))+
   xlab("Condition") + ylab("Ratio (EC/PP)") +
-  scale_y_continuous(expand = expansion(0.1)) +
+  scale_y_continuous(expand = expansion(0.2)) +
   theme(legend.position = "none",
-        panel.background = element_rect(fill="lightyellow"),
-        plot.margin = margin(1,1,1,1,unit="cm"))
+        panel.background = element_rect(fill="lightyellow"))
 
-plot_grid(plot_ratio,plot_ratio_stats,labels = "AUTO",rel_widths = c(3,2))
+plot_grid(plot_ratio,plot_ratio_stats,labels = "auto", ncol = 3, rel_widths = c(2,1.2,2))
+export::graph2ppt(append  = TRUE)
+
 ```
 
 Notably, the ratio differences were non-significant by time in the logarithmic phase, but were all significant in the stationary phase for every coculture (Figure \@ref(fig:comparison-by-time)).
@@ -317,8 +298,7 @@ plots <- lapply(1:length(samples),function(i){
           axis.title = element_blank())
 })
 legend <- get_legend(plots[[1]] + theme(legend.position = "top",legend.direction = "horizontal"))
-plot_grid(legend, plot_grid(plotlist = plots,labels = "AUTO",ncol=4),rel_heights = c(1,15),ncol=1)
-if (save_tiff) ggsave("figure S2.tiff",path="figures", compression = "lzw")
+plot_grid(legend, plot_grid(plotlist = plots,labels = "auto",ncol=4),rel_heights = c(1,15),ncol=1)
 
 ```
 
@@ -411,7 +391,6 @@ list_of_PCA_plot <- lapply(list_of_vsd, function(vsd) {
   })
 
 plot_grid(plotlist = list_of_PCA_plot,labels = "auto",ncol=1)
-if (save_tiff) ggsave("figure 1g.tiff",path="figures", compression = "lzw")
 ```
 
 
@@ -484,15 +463,24 @@ ggplot.betadisper = function(x){
 
 (ref:cap-betadisper-ec) Beta-dispersion shows the gene expression trajectory of all *E. coli* containing cultures in the plane of PCoA 1 and PCoA 2 over time. Open circles are the coordinates of samples. There are three points for each condition and time, and they formed a color-filled triangle. Centroid for each triangle was highlighted with larger size point with filled color.
 
-```{r betadisper-ec, fig.cap="(ref:cap-betadisper-ec)"}
-ggplot.betadisper(models[[1]])
+```{r betadisper-ec, fig.cap="(ref:cap-betadisper-ec)",fig.cap=.5}
+p1 = ggplot.betadisper(models[[1]])
+p1
+export::graph2ppt(append  = TRUE)
 ```
 
 (ref:cap-betadisper-pp) Beta-dispersion shows the gene expression trajectory of all *P. putida* containing cultures in the plane of PCoA 1 and PCoA 2 over time. Open circles are the coordinates of samples. There are three points for each condition and time, and they formed a color-filled triangle. Centroid for each triangle was showed as a filled circle.
 
-```{r betadisper-pp, fig.cap="(ref:cap-betadisper-pp)"}
-ggplot.betadisper(models[[2]])
+```{r betadisper-pp, fig.cap="(ref:cap-betadisper-pp)", fig.cap=.5}
+p2 = ggplot.betadisper(models[[2]])
+p2
+export::graph2ppt(append  = TRUE)
 ```
+
+```{r include=FALSE,fig.asp=0.5}
+plot_grid(p1,p2,ncol = 2)
+```
+
 
 #### Comparison of dispersion 
 
@@ -564,8 +552,7 @@ deg_count_plots <- lapply(seq_along(count), function(i){
 }) 
 
 
-plot_grid(plotlist = deg_count_plots,labels = "AUTO",ncol = 1)
-if (save_tiff) ggsave("figure S3.tiff",path="figures", compression = "lzw")
+plot_grid(plotlist = deg_count_plots,labels = "auto",ncol = 1)
 ```
 
 ### Specific DEGs in *E. coli* and *P. putida*
@@ -597,8 +584,7 @@ deg_Venn_plot_PP <- lapply(seq_along(ratio0), function(i){
 })
 
 plot_grid(plotlist = c(deg_Venn_plot_EC,deg_Venn_plot_PP),
-          labels = "AUTO")
-if (save_tiff) ggsave("figure S4.tiff",path="figures", compression = "lzw")
+          labels = "auto")
 
 ```
 
@@ -710,8 +696,7 @@ p2 <- grid_panel_autoheight(p2)
 (ref:kegg-ora-cap) A dot plot shows the KEGG enrichment result of *E. coli* (A) and *P. putida* (B) in the three coculture as a function of time.
 
 ```{r kegg-ora, fig.width=8, fig.asp=1.1, fig.cap="(ref:kegg-ora-cap) "}
-plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "AUTO",align = "v")
-if (save_tiff) ggsave("figure S5.tiff",path="figures", dpi = 600, compression = "lzw")
+plot_grid(p1,p2, rel_heights = c(1,0.3), ncol = 1, labels = "auto",align = "v")
 
 ```
 
@@ -800,7 +785,8 @@ gse_dotplot <- function(df){
   ggplot(df, aes(time, Description, size = enrichScore,color=type)) +
     geom_point() +
     facet_grid(~ ratio, scales = "free_y") +
-    labs(y="KEGG pathway")
+    labs(y="KEGG pathway") +
+    scale_size(limits = c(0.2,1.0))
 }
 ```
 
@@ -829,8 +815,8 @@ gsea_plot_PP <- gse_dotplot(df2)
 (ref:gsea-dotplot-figcap) GSEA result of cocultures in *E. coli* (A) and *P. putida* (B)
 
 ```{r gsea-dotplot, fig.asp=1.5, fig.width = 8, fig.cap="(ref:gsea-dotplot-figcap)"}
-plot_grid(gsea_plot_EC,gsea_plot_PP,align = "v", ncol = 1,labels = "AUTO",rel_heights = c(1.5,1))
-
+plot_grid(gsea_plot_EC,gsea_plot_PP,align = "v", ncol = 1,labels = "auto",rel_heights = c(1.5,1))
+export::graph2ppt(append  = TRUE)
 ```
 
 
@@ -886,7 +872,7 @@ gsea_pathway_venn3 <- ggVennDiagram(l3, label = "count") +
  theme(legend.position = "none")
 
 plot_grid(plot_grid(gsea_pathway_venn2,gsea_pathway_venn3,ncol = 1,labels = c("A","B")),gsea_pathway_venn1,labels = c("","C"),ncol = 2,rel_widths = c(.5,1))
-
+export::graph2ppt(append  = TRUE)
 ```
 
 
