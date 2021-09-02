@@ -1,6 +1,6 @@
 The repository contains the supplementary files of a recent paper.
 
-**Gao, C.-H.**; Cao, H.; Xiao, K.-Q.; Ju, F.; Cai, P.*; Wu, Y.-C.; Huang Q.-Y. Emergent transcriptional adaption facilitates convergent succession within a synthetic community. **ISME Communications**, Accepted
+**Gao, C.-H.**; Cao, H.; Xiao, K.-Q.; Ju, F.; Cai, P.*; Wu, Y.-C.; Huang Q.-Y. Emergent transcriptional adaption facilitates convergent succession within a synthetic community. **ISME Communications**, 1, 46 (2021). https://doi.org/10.1038/s43705-021-00049-5
 
 The codes available here enable reproducible study of this paper. 
 
